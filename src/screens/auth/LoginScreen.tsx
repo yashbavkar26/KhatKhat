@@ -4,127 +4,217 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
-  StyleSheet
+  KeyboardAvoidingView,
+  Platform,
+  StatusBar
 } from 'react-native';
+import { useAppContext } from '../../context/AppContext';
+import { useNavigation } from '@react-navigation/native';
+import { LinearGradient } from 'expo-linear-gradient';
+import { Moon, Sun, ArrowRight, Package } from 'lucide-react-native';
 
-type Props = {
-  setIsLoggedIn: (value: boolean) => void;
-  setRole: (role: 'customer' | 'carrier') => void;
-};
-
-export default function LoginScreen({ setIsLoggedIn, setRole }: Props) {
+export default function LoginScreen() {
   const [selectedRole, setSelectedRole] = useState<'customer' | 'carrier'>('customer');
   const [phone, setPhone] = useState('');
+  
+  const { setUserRole, theme, setTheme } = useAppContext();
+  const navigation = useNavigation<any>();
+
+  const isDark = theme === 'dark';
 
   const handleLogin = () => {
-    console.log('Role:', selectedRole);
-    console.log('Phone:', phone);
+    setUserRole(selectedRole);
+    navigation.navigate('OTP', { phoneNumber: phone });
+  };
 
-    setRole(selectedRole);
-    setIsLoggedIn(true);
+  const toggleTheme = () => {
+    setTheme(isDark ? 'light' : 'dark');
   };
 
   return (
-    <View style={styles.container}>
-
-      {/* Title */}
-      <Text style={styles.title}>KhatKhat 🚀</Text>
-      <Text style={styles.subtitle}>Hyperlocal Parcel Delivery</Text>
-
-      {/* Role Selector */}
-      <View style={styles.roleContainer}>
-        <TouchableOpacity
-          style={[
-            styles.roleButton,
-            selectedRole === 'customer' && styles.activeRole
-          ]}
-          onPress={() => setSelectedRole('customer')}
+    <KeyboardAvoidingView 
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      style={{ flex: 1 }}
+    >
+      <StatusBar barStyle={isDark ? "light-content" : "dark-content"} />
+      <LinearGradient
+        colors={isDark ? ['#111827', '#1f2937'] : ['#F8F9FF', '#E0E7FF']}
+        style={{ flex: 1, padding: 24, justifyContent: 'center' }}
+      >
+        {/* Theme Toggle */}
+        <TouchableOpacity 
+          onPress={toggleTheme}
+          style={{ 
+            position: 'absolute', 
+            top: 60, 
+            right: 24,
+            padding: 12,
+            backgroundColor: isDark ? '#374151' : '#ffffff',
+            borderRadius: 50,
+            shadowColor: '#000',
+            shadowOffset: { width: 0, height: 2 },
+            shadowOpacity: 0.1,
+            shadowRadius: 4,
+            elevation: 3
+          }}
         >
-          <Text style={styles.roleText}>Customer</Text>
+          {isDark ? <Sun color="#FBBF24" size={24} /> : <Moon color="#6366F1" size={24} />}
         </TouchableOpacity>
 
-        <TouchableOpacity
-          style={[
-            styles.roleButton,
-            selectedRole === 'carrier' && styles.activeRole
-          ]}
-          onPress={() => setSelectedRole('carrier')}
+        <View style={{ alignItems: 'center', marginBottom: 40 }}>
+          <View style={{ 
+            width: 80, 
+            height: 80, 
+            backgroundColor: isDark ? '#374151' : '#ffffff', 
+            borderRadius: 40, 
+            alignItems: 'center', 
+            justifyContent: 'center',
+            marginBottom: 20,
+            shadowColor: '#6366F1',
+            shadowOffset: { width: 0, height: 10 },
+            shadowOpacity: 0.2,
+            shadowRadius: 20,
+            elevation: 10
+          }}>
+            <Package size={40} color="#6366F1" />
+          </View>
+          <Text style={{ 
+            fontSize: 42, 
+            fontWeight: '900', 
+            color: isDark ? '#F9FAFB' : '#111827',
+            marginBottom: 8,
+            letterSpacing: -1
+          }}>
+            KhatKhat
+          </Text>
+          <Text style={{ 
+            fontSize: 24, 
+            fontWeight: 'bold', 
+            color: '#6366F1',
+            marginBottom: 8
+          }}>
+            खटखट
+          </Text>
+          <Text style={{ 
+            fontSize: 16, 
+            color: isDark ? '#9CA3AF' : '#6B7280',
+            fontWeight: '500'
+          }}>
+            Hyperlocal Parcel Delivery
+          </Text>
+        </View>
+
+        <View style={{ 
+          flexDirection: 'row', 
+          backgroundColor: isDark ? '#374151' : '#ffffff',
+          borderRadius: 16,
+          padding: 6,
+          marginBottom: 30,
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: 2 },
+          shadowOpacity: 0.05,
+          shadowRadius: 10,
+          elevation: 2
+        }}>
+          <TouchableOpacity
+            style={{
+              flex: 1,
+              paddingVertical: 14,
+              borderRadius: 12,
+              backgroundColor: selectedRole === 'customer' ? '#6366F1' : 'transparent',
+              alignItems: 'center',
+            }}
+            onPress={() => setSelectedRole('customer')}
+          >
+            <Text style={{ 
+              fontWeight: 'bold',
+              fontSize: 16,
+              color: selectedRole === 'customer' ? '#ffffff' : (isDark ? '#9CA3AF' : '#6B7280') 
+            }}>
+              Customer
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={{
+              flex: 1,
+              paddingVertical: 14,
+              borderRadius: 12,
+              backgroundColor: selectedRole === 'carrier' ? '#10B981' : 'transparent',
+              alignItems: 'center',
+            }}
+            onPress={() => setSelectedRole('carrier')}
+          >
+            <Text style={{ 
+              fontWeight: 'bold',
+              fontSize: 16,
+              color: selectedRole === 'carrier' ? '#ffffff' : (isDark ? '#9CA3AF' : '#6B7280') 
+            }}>
+              Delivery Agent
+            </Text>
+          </TouchableOpacity>
+        </View>
+
+        <View style={{ marginBottom: 30 }}>
+          <Text style={{ 
+            color: isDark ? '#D1D5DB' : '#374151', 
+            fontWeight: '600', 
+            marginBottom: 8,
+            marginLeft: 4
+          }}>
+            Phone Number
+          </Text>
+          <TextInput
+            placeholder="Enter your mobile number"
+            placeholderTextColor={isDark ? '#6B7280' : '#9CA3AF'}
+            value={phone}
+            onChangeText={setPhone}
+            keyboardType="phone-pad"
+            style={{
+              backgroundColor: isDark ? '#374151' : '#ffffff',
+              color: isDark ? '#F9FAFB' : '#111827',
+              borderWidth: 1,
+              borderColor: isDark ? '#4B5563' : '#E5E7EB',
+              borderRadius: 16,
+              padding: 18,
+              fontSize: 16,
+              fontWeight: '500',
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.05,
+              shadowRadius: 5,
+              elevation: 1
+            }}
+          />
+        </View>
+
+        <TouchableOpacity 
+          style={{
+            backgroundColor: selectedRole === 'carrier' ? '#10B981' : '#6366F1',
+            borderRadius: 16,
+            padding: 20,
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'center',
+            shadowColor: selectedRole === 'carrier' ? '#10B981' : '#6366F1',
+            shadowOffset: { width: 0, height: 8 },
+            shadowOpacity: 0.3,
+            shadowRadius: 12,
+            elevation: 8
+          }} 
+          onPress={handleLogin}
         >
-          <Text style={styles.roleText}>Delivery Agent</Text>
+          <Text style={{ 
+            color: '#ffffff', 
+            fontWeight: 'bold', 
+            fontSize: 18,
+            marginRight: 8
+          }}>
+            Continue
+          </Text>
+          <ArrowRight color="#ffffff" size={20} />
         </TouchableOpacity>
-      </View>
-
-      {/* Phone Input */}
-      <TextInput
-        placeholder="Enter Phone Number"
-        value={phone}
-        onChangeText={setPhone}
-        style={styles.input}
-        keyboardType="phone-pad"
-      />
-
-      {/* Login Button */}
-      <TouchableOpacity style={styles.button} onPress={handleLogin}>
-        <Text style={styles.buttonText}>Send OTP</Text>
-      </TouchableOpacity>
-
-    </View>
+      </LinearGradient>
+    </KeyboardAvoidingView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#F8F9FF',
-    justifyContent: 'center',
-    padding: 20,
-  },
-  title: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    textAlign: 'center',
-  },
-  subtitle: {
-    textAlign: 'center',
-    marginBottom: 30,
-    color: 'gray',
-  },
-  roleContainer: {
-    flexDirection: 'row',
-    marginBottom: 20,
-  },
-  roleButton: {
-    flex: 1,
-    padding: 15,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#ccc',
-    marginHorizontal: 5,
-    alignItems: 'center',
-  },
-  activeRole: {
-    backgroundColor: '#6366F1',
-  },
-  roleText: {
-    color: '#000',
-    fontWeight: '600',
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: '#ccc',
-    borderRadius: 12,
-    padding: 15,
-    marginBottom: 20,
-    backgroundColor: '#fff',
-  },
-  button: {
-    backgroundColor: '#6366F1',
-    padding: 15,
-    borderRadius: 30,
-    alignItems: 'center',
-  },
-  buttonText: {
-    color: '#fff',
-    fontWeight: 'bold',
-  },
-});

@@ -3,7 +3,7 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createStackNavigator } from '@react-navigation/stack';
 
 // Auth Screens
-import { LoginScreen } from '../screens/auth/LoginScreen';
+import LoginScreen from '../screens/auth/LoginScreen';
 import { OTPScreen } from '../screens/auth/OTPScreen';
 
 // Customer Screens
@@ -36,12 +36,20 @@ function AuthStack() {
 }
 
 function CustomerTabs() {
+  const { theme } = useAppContext();
+  const isDark = theme === 'dark';
   return (
     <Tab.Navigator
       screenOptions={{
         headerShown: false,
-        tabBarStyle: { height: 80, paddingBottom: 20 },
+        tabBarStyle: { 
+          height: 80, 
+          paddingBottom: 20,
+          backgroundColor: isDark ? '#1f2937' : '#ffffff',
+          borderTopColor: isDark ? '#374151' : '#e5e7eb',
+        },
         tabBarActiveTintColor: '#6366f1',
+        tabBarInactiveTintColor: isDark ? '#9ca3af' : '#6b7280',
       }}
     >
       <Tab.Screen name="Home" component={CustomerHomeScreen} options={{ tabBarIcon: ({ color }) => <Home color={color} size={20} /> }} />
@@ -54,12 +62,20 @@ function CustomerTabs() {
 }
 
 function CarrierTabs() {
+  const { theme } = useAppContext();
+  const isDark = theme === 'dark';
   return (
     <Tab.Navigator
       screenOptions={{
         headerShown: false,
-        tabBarStyle: { height: 80, paddingBottom: 20 },
+        tabBarStyle: { 
+          height: 80, 
+          paddingBottom: 20,
+          backgroundColor: isDark ? '#1f2937' : '#ffffff',
+          borderTopColor: isDark ? '#374151' : '#e5e7eb',
+        },
         tabBarActiveTintColor: '#10b981', // Emerald green for carrier
+        tabBarInactiveTintColor: isDark ? '#9ca3af' : '#6b7280',
       }}
     >
       <Tab.Screen name="Jobs" component={CarrierJobsScreen} options={{ tabBarIcon: ({ color }) => <Briefcase color={color} size={20} /> }} />
