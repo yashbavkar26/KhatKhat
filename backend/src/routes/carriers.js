@@ -6,6 +6,7 @@ const { db, Timestamp, FieldValue } = require('../services/firebase');
 const { getIo } = require('../services/socket');
 const { haversineKm } = require('../utils/distance');
 const { clearMatchTimer } = require('../services/matching');
+const { sendSms } = require('../services/twilio');
 
 const router = express.Router();
 
@@ -80,6 +81,11 @@ router.post(
       await parcelRef.update(updates);
 
       emitToParcel(parcelId, 'parcel:accepted', { acceptedAt: now });
+
+      // Send SMS notification for Delivery Partner Ready
+      const carrierName = parcel.carrier2Id === userId ? parcel.carrier2Name : parcel.carrier1Name;
+      const smsBody = `Delivery partner ${carrierName || 'is'} ready! Your parcel #${parcelId.slice(-6)} has been accepted and is being picked up.`;
+      sendSms(parcel.senderPhone, smsBody);
 
       return res.json({
         success: true,
@@ -297,6 +303,13 @@ router.post(
       emitToParcel(parcelId, 'parcel:delivered', {
         deliveredAt: now,
       });
+
+      // Send SMS notification for Order Delivered
+      const deliveredSmsBody = `Order Delivered! Your parcel #${parcelId.slice(-6)} has been successfully delivered. Thank you for using KhatKhat!`;
+      sendSms(parcel.senderPhone, deliveredSmsBody);
+      if (parcel.receiverPhone !== parcel.senderPhone) {
+        sendSms(parcel.receiverPhone, deliveredSmsBody);
+      }
 
       return res.json({
         success: true,

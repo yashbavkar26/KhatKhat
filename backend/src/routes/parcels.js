@@ -7,6 +7,7 @@ const { getDistanceAndDuration } = require('../services/maps');
 const { createOrder, verifyPayment } = require('../services/razorpay');
 const { getIo } = require('../services/socket');
 const { matchCarrier, clearMatchTimer } = require('../services/matching');
+const { sendSms } = require('../services/twilio');
 
 const router = express.Router();
 
@@ -274,6 +275,14 @@ router.post(
       setImmediate(() => {
         matchCarrier(parcelId).catch((err) => console.error('Matching error:', err.message));
       });
+
+      // Send SMS notification for Order Placed
+      const smsBody = `Order Placed! Your parcel #${parcelId.slice(-6)} is being matched with a carrier. Track it in the app.`;
+      sendSms(parcel.senderPhone, smsBody);
+      if (parcel.receiverPhone !== parcel.senderPhone) {
+        const receiverSmsBody = `An order has been placed for you! Parcel #${parcelId.slice(-6)} is on its way.`;
+        sendSms(parcel.receiverPhone, receiverSmsBody);
+      }
 
       return res.json({
         success: true,
