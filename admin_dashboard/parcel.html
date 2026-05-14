@@ -1,0 +1,659 @@
+Page: Parcel Tracking Detail
+
+```html
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KhatKhat Admin Dashboard - Parcel Tracking</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://code.iconify.design/iconify-icon/1.0.7/iconify-icon.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        uber: {
+                            black: '#000000',
+                            panel: '#0A0A0A',
+                            border: '#1A1A1A',
+                            text: '#FFFFFF',
+                            muted: '#808080',
+                        },
+                        brand: {
+                            neon: '#FF5A00',
+                            dark: '#1a0900',
+                        }
+                    },
+                    animation: {
+                        'flow': 'flow 2s linear infinite',
+                        'flow-reverse': 'flow-reverse 2s linear infinite',
+                        'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                        'pulse-ring': 'pulse-ring 2s cubic-bezier(0.215, 0.61, 0.355, 1) infinite',
+                        'ping-slow': 'ping 2s cubic-bezier(0, 0, 0.2, 1) infinite',
+                    },
+                    keyframes: {
+                        flow: {
+                            '0%': { strokeDashoffset: '100' },
+                            '100%': { strokeDashoffset: '0' },
+                        },
+                        'flow-reverse': {
+                            '0%': { strokeDashoffset: '0' },
+                            '100%': { strokeDashoffset: '100' },
+                        },
+                        'pulse-ring': {
+                            '0%': { transform: 'scale(0.8)', opacity: '0.8' },
+                            '100%': { transform: 'scale(2.5)', opacity: '0' },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #000;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #222;
+            border-radius: 10px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #444;
+        }
+
+        .glass-panel {
+            background: rgba(10, 10, 10, 0.7);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .text-neon {
+            text-shadow: 0 0 10px rgba(255, 90, 0, 0.5);
+        }
+
+        .border-neon {
+            box-shadow: 0 0 15px rgba(255, 90, 0, 0.2) inset, 0 0 15px rgba(255, 90, 0, 0.2);
+        }
+    </style>
+    <style>
+        sd-component {
+            display: block;
+        }
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/petite-vue@0.4.1/dist/petite-vue.iife.js" defer init></script>
+</head>
+
+<body class="bg-uber-black text-uber-text font-sans selection:bg-brand-neon selection:text-white overflow-hidden">
+
+    <div class="flex h-screen w-full">
+
+        <!-- Sidebar Navigation (Reused component with updated props for links and active state) -->
+        <!-- component: SidebarNavigation (cde169a1-c9a9-413f-bd2f-1f1c93606389) -->
+        <div
+            v-scope="{ ...{&quot;activeItem&quot;:&quot;parcels&quot;,&quot;fraudCount&quot;:3,&quot;overviewHref&quot;:&quot;#overview&quot;,&quot;relayHref&quot;:&quot;admin.html&quot;,&quot;mapHref&quot;:&quot;#map&quot;,&quot;parcelsHref&quot;:&quot;parcel.html&quot;,&quot;usersHref&quot;:&quot;career_profile.html&quot;,&quot;fraudHref&quot;:&quot;fraud_investigation.html&quot;,&quot;aiHref&quot;:&quot;route_optimization.html&quot;,&quot;revenueHref&quot;:&quot;#revenue&quot;,&quot;adminName&quot;:&quot;Arjun Desk&quot;,&quot;adminRole&quot;:&quot;Super Admin&quot;,&quot;adminAvatar&quot;:&quot;https://i.pravatar.cc/150?u=admin&quot;}, $emit() {} }">
+            <aside class="w-64 flex-shrink-0 border-r border-uber-border bg-uber-black flex flex-col z-20 relative">
+                <!-- Logo Area -->
+                <div class="h-16 flex items-center px-6 border-b border-uber-border">
+                    <div class="flex items-center gap-3">
+                        <div class="w-8 h-8 bg-brand-neon rounded-sm flex items-center justify-center relative">
+                            <div class="absolute inset-0 bg-brand-neon blur-md opacity-50"></div>
+                            <iconify-icon icon="lucide:box" class="text-white relative z-10 text-lg"></iconify-icon>
+                        </div>
+                        <span class="font-bold tracking-tight text-xl">KhatKhat</span>
+                    </div>
+                </div>
+
+                <!-- Nav Links -->
+                <nav class="flex-1 overflow-y-auto py-6 px-3 space-y-1">
+                    <p class="px-3 text-xs font-semibold text-uber-muted uppercase tracking-wider mb-2">Logistics Core
+                    </p>
+
+                    <a :href="overviewHref"
+                        :class="{ 'text-white bg-white/5 border border-white/10': activeItem === 'overview', 'text-uber-muted hover:text-white': activeItem !== 'overview' }"
+                        class="flex items-center gap-3 px-3 py-2.5 text-sm font-medium rounded-lg transition-colors">
+                        <iconify-icon icon="lucide:layout-dashboard" class="text-lg"></iconify-icon>
+                        Overview Analytics
+                    </a>
+
+                    <a :href="relayHref"
+                        :class="{ 'text-white bg-white/5 border border-white/10': activeItem === 'relay', 'text-uber-muted hover:text-white': activeItem !== 'relay' }"
+                        class="flex items-center gap-3 px-3 py-2.5 text-sm font-medium rounded-lg transition-colors relative overflow-hidden">
+                        <div v-if="activeItem === 'relay'"
+                            class="absolute left-0 top-0 bottom-0 w-1 bg-brand-neon shadow-[0_0_8px_#FF5A00]"></div>
+                        <iconify-icon :class="{ 'text-brand-neon': activeItem === 'relay' }" icon="lucide:network"
+                            class="text-lg"></iconify-icon>
+                        Relay Chain Visualizer
+                    </a>
+
+                    <a :href="mapHref"
+                        :class="{ 'text-white bg-white/5 border border-white/10': activeItem === 'map', 'text-uber-muted hover:text-white': activeItem !== 'map' }"
+                        class="flex items-center justify-between px-3 py-2.5 text-sm font-medium rounded-lg transition-colors">
+                        <div class="flex items-center gap-3">
+                            <iconify-icon icon="lucide:map" class="text-lg"></iconify-icon>
+                            Live Operations
+                        </div>
+                        <span class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
+                    </a>
+
+                    <a :href="parcelsHref"
+                        :class="{ 'text-white bg-white/5 border border-white/10': activeItem === 'parcels', 'text-uber-muted hover:text-white': activeItem !== 'parcels' }"
+                        class="flex items-center gap-3 px-3 py-2.5 text-sm font-medium rounded-lg transition-colors">
+                        <iconify-icon icon="lucide:package" class="text-lg"></iconify-icon>
+                        Parcel Management
+                    </a>
+
+                    <div class="pt-4 pb-2">
+                        <p class="px-3 text-xs font-semibold text-uber-muted uppercase tracking-wider mb-2">Network
+                            Health</p>
+                    </div>
+
+                    <a :href="usersHref"
+                        :class="{ 'text-white bg-white/5 border border-white/10': activeItem === 'users', 'text-uber-muted hover:text-white': activeItem !== 'users' }"
+                        class="flex items-center gap-3 px-3 py-2.5 text-sm font-medium rounded-lg transition-colors">
+                        <iconify-icon icon="lucide:users" class="text-lg"></iconify-icon>
+                        Users & Carriers
+                    </a>
+
+                    <a :href="fraudHref"
+                        :class="{ 'text-white bg-white/5 border border-white/10': activeItem === 'fraud', 'text-uber-muted hover:text-white': activeItem !== 'fraud' }"
+                        class="flex items-center justify-between px-3 py-2.5 text-sm font-medium rounded-lg transition-colors">
+                        <div class="flex items-center gap-3">
+                            <iconify-icon icon="lucide:shield-alert" class="text-lg"></iconify-icon>
+                            Trust & Fraud
+                        </div>
+                        <span class="bg-white/10 text-xs px-2 py-0.5 rounded-full text-white">{{ fraudCount }}</span>
+                    </a>
+
+                    <a :href="aiHref"
+                        :class="{ 'text-white bg-white/5 border border-white/10': activeItem === 'ai', 'text-uber-muted hover:text-white': activeItem !== 'ai' }"
+                        class="flex items-center gap-3 px-3 py-2.5 text-sm font-medium rounded-lg transition-colors">
+                        <iconify-icon icon="lucide:cpu" class="text-lg"></iconify-icon>
+                        AI Matching Engine
+                    </a>
+
+                    <a :href="revenueHref"
+                        :class="{ 'text-white bg-white/5 border border-white/10': activeItem === 'revenue', 'text-uber-muted hover:text-white': activeItem !== 'revenue' }"
+                        class="flex items-center gap-3 px-3 py-2.5 text-sm font-medium rounded-lg transition-colors">
+                        <iconify-icon icon="lucide:wallet" class="text-lg"></iconify-icon>
+                        Revenue (Razorpay)
+                    </a>
+                </nav>
+
+                <!-- User Profile Bottom -->
+                <div class="p-4 border-t border-uber-border">
+                    <button @click="$emit('profileClick')"
+                        class="flex items-center gap-3 w-full hover:bg-white/5 p-2 rounded-lg transition-colors text-left">
+                        <div
+                            class="w-8 h-8 rounded-full bg-uber-border flex items-center justify-center overflow-hidden">
+                            <img :src="adminAvatar" :alt="adminName" class="w-full h-full object-cover">
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <p class="text-sm font-medium truncate">{{ adminName }}</p>
+                            <p class="text-xs text-uber-muted truncate">{{ adminRole }}</p>
+                        </div>
+                        <iconify-icon icon="lucide:chevrons-up-down" class="text-uber-muted"></iconify-icon>
+                    </button>
+                </div>
+            </aside>
+        </div>
+        <!-- /component: SidebarNavigation (cde169a1-c9a9-413f-bd2f-1f1c93606389) -->
+
+        <!-- Main Content Area -->
+        <main class="flex-1 flex flex-col h-screen relative bg-uber-black">
+
+            <!-- Background Grid Pattern -->
+            <div class="absolute inset-0 pointer-events-none"
+                style="background-image: radial-gradient(rgba(255,255,255,0.05) 1px, transparent 1px); background-size: 32px 32px; opacity: 0.5;">
+            </div>
+
+            <!-- Top Header -->
+            <!-- component: PageHeader (78fd64bc-351e-40da-bce0-eb45478205db) -->
+            <div
+                v-scope="{ ...{&quot;pageTitle&quot;:&quot;Parcel Tracking: PKG-992A7&quot;,&quot;regionStatus&quot;:&quot;Live Tracking Mode&quot;,&quot;searchPlaceholder&quot;:&quot;Track another ID...&quot;,&quot;notificationCount&quot;:1}, $emit() {} }">
+                <header
+                    class="h-16 flex items-center justify-between px-8 border-b border-uber-border bg-uber-black/80 backdrop-blur-md z-30 sticky top-0">
+                    <div class="flex items-center gap-4">
+                        <h1 class="text-lg font-semibold tracking-tight">{{ pageTitle }}</h1>
+                        <div class="h-4 w-px bg-uber-border"></div>
+                        <div
+                            class="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 border border-white/10 text-xs font-medium">
+                            <span class="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></span>
+                            {{ regionStatus }}
+                        </div>
+                    </div>
+
+                    <div class="flex items-center gap-4">
+                        <!-- Global Search -->
+                        <div class="relative hidden md:block">
+                            <iconify-icon icon="lucide:search"
+                                class="absolute left-3 top-1/2 -translate-y-1/2 text-uber-muted text-sm"></iconify-icon>
+                            <input type="text" :placeholder="searchPlaceholder"
+                                @input="$emit('search', $event.target.value)"
+                                class="bg-uber-panel border border-uber-border rounded-lg pl-9 pr-4 py-1.5 text-sm focus:outline-none focus:border-brand-neon focus:ring-1 focus:ring-brand-neon transition-all w-64 placeholder-uber-muted">
+                            <div class="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
+                                <kbd
+                                    class="bg-white/10 border border-white/10 rounded px-1.5 text-[10px] text-uber-muted">⌘</kbd>
+                                <kbd
+                                    class="bg-white/10 border border-white/10 rounded px-1.5 text-[10px] text-uber-muted">K</kbd>
+                            </div>
+                        </div>
+
+                        <button @click="$emit('notificationClick')"
+                            class="relative p-2 text-uber-muted hover:text-white transition-colors">
+                            <iconify-icon icon="lucide:bell" class="text-xl"></iconify-icon>
+                            <span v-if="notificationCount > 0"
+                                class="absolute top-1.5 right-1.5 w-2 h-2 bg-brand-neon rounded-full border-2 border-uber-black"></span>
+                        </button>
+                        <button @click="$emit('settingsClick')"
+                            class="p-2 text-uber-muted hover:text-white transition-colors">
+                            <iconify-icon icon="lucide:settings" class="text-xl"></iconify-icon>
+                        </button>
+                    </div>
+                </header>
+            </div>
+            <!-- /component: PageHeader (78fd64bc-351e-40da-bce0-eb45478205db) -->
+
+            <!-- Scrollable Content -->
+            <div class="flex-1 overflow-y-auto p-8 relative z-10">
+                <div class="max-w-7xl mx-auto space-y-6">
+
+                    <!-- Overview Banner -->
+                    <div
+                        class="bg-uber-panel border border-uber-border rounded-xl p-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 relative overflow-hidden">
+                        <div class="absolute top-0 left-0 w-1 h-full bg-brand-neon shadow-[0_0_15px_#FF5A00]"></div>
+
+                        <div class="flex flex-col gap-2">
+                            <div class="flex items-center gap-3">
+                                <h2 class="text-2xl font-bold tracking-tight font-mono">PKG-992A7</h2>
+                                <span
+                                    class="px-2.5 py-1 rounded bg-brand-neon/10 text-brand-neon border border-brand-neon/30 text-xs font-bold uppercase tracking-widest flex items-center gap-1.5">
+                                    <span class="w-1.5 h-1.5 rounded-full bg-brand-neon animate-pulse"></span>
+                                    Out for Delivery
+                                </span>
+                            </div>
+                            <p class="text-sm text-uber-muted flex items-center gap-2">
+                                <iconify-icon icon="lucide:box"></iconify-icon>
+                                Electronics (1.2kg) • High Value
+                            </p>
+                        </div>
+
+                        <div class="flex flex-wrap gap-6 items-center">
+                            <div class="flex flex-col items-end">
+                                <span class="text-xs text-uber-muted mb-1">Estimated Arrival</span>
+                                <span class="text-xl font-bold text-white flex items-center gap-2">
+                                    <iconify-icon icon="lucide:clock" class="text-brand-neon"></iconify-icon>
+                                    14:30 IST
+                                </span>
+                            </div>
+                            <div class="h-10 w-px bg-uber-border hidden md:block"></div>
+                            <div class="flex flex-col items-end">
+                                <span class="text-xs text-uber-muted mb-1">Route Confidence</span>
+                                <span class="text-xl font-bold text-green-500 flex items-center gap-2">
+                                    <iconify-icon icon="lucide:shield-check"></iconify-icon>
+                                    98%
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Main Tracking Grid -->
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+                        <!-- Left Column: Map & Timeline -->
+                        <div class="lg:col-span-2 space-y-6">
+
+                            <!-- Active Route Visualization Map -->
+                            <div
+                                class="bg-uber-panel border border-uber-border rounded-xl relative overflow-hidden h-[400px] flex flex-col">
+                                <div
+                                    class="absolute top-0 left-0 right-0 p-4 flex justify-between items-start z-20 pointer-events-none">
+                                    <h3 class="text-sm font-semibold flex items-center gap-2 text-white">
+                                        <iconify-icon icon="lucide:map" class="text-brand-neon"></iconify-icon>
+                                        Live Route Journey
+                                    </h3>
+                                    <span
+                                        class="px-2 py-1 rounded bg-black/50 border border-white/10 text-xs font-mono backdrop-blur-sm">
+                                        Last ping: Just now
+                                    </span>
+                                </div>
+
+                                <!-- Map SVG -->
+                                <div class="flex-1 w-full h-full relative bg-[#050505]">
+                                    <!-- Base texture -->
+                                    <div class="absolute inset-0 opacity-20"
+                                        style="background-image: radial-gradient(rgba(255,255,255,0.2) 1px, transparent 1px); background-size: 24px 24px;">
+                                    </div>
+
+                                    <svg width="100%" height="100%" viewBox="0 0 800 400"
+                                        preserveAspectRatio="xMidYMid slice" class="w-full h-full">
+                                        <defs>
+                                            <filter id="glow-orange-map" x="-50%" y="-50%" width="200%" height="200%">
+                                                <feGaussianBlur stdDeviation="3" result="blur" />
+                                                <feMerge>
+                                                    <feMergeNode in="blur" />
+                                                    <feMergeNode in="SourceGraphic" />
+                                                </feMerge>
+                                            </filter>
+                                            <filter id="glow-green-map" x="-50%" y="-50%" width="200%" height="200%">
+                                                <feGaussianBlur stdDeviation="3" result="blur" />
+                                                <feMerge>
+                                                    <feMergeNode in="blur" />
+                                                    <feMergeNode in="SourceGraphic" />
+                                                </feMerge>
+                                            </filter>
+                                        </defs>
+
+                                        <!-- Inactive/Completed Paths -->
+                                        <g stroke="#333" stroke-width="3" fill="none" stroke-linecap="round">
+                                            <!-- Panaji to Margao Hub -->
+                                            <path d="M 200 150 L 400 300" stroke-dasharray="6 6" />
+                                        </g>
+
+                                        <!-- Active Path -->
+                                        <g stroke="#FF5A00" stroke-width="3" fill="none" filter="url(#glow-orange-map)"
+                                            opacity="0.8">
+                                            <!-- Margao to Vasco -->
+                                            <path d="M 400 300 L 650 200" stroke-dasharray="15 20"
+                                                class="animate-flow" />
+                                        </g>
+
+                                        <!-- Nodes -->
+                                        <!-- SENDER: Panaji -->
+                                        <g transform="translate(200, 150)">
+                                            <circle r="8" fill="#222" stroke="#808080" stroke-width="2" />
+                                            <text x="0" y="-15" fill="#808080" font-size="11" font-weight="500"
+                                                text-anchor="middle" font-family="Inter">Origin (Panaji)</text>
+                                        </g>
+
+                                        <!-- HUB: Margao -->
+                                        <g transform="translate(400, 300)">
+                                            <circle r="10" fill="#000" stroke="#808080" stroke-width="2" />
+                                            <circle r="4" fill="#808080" />
+                                            <text x="0" y="25" fill="#FFF" font-size="12" font-weight="600"
+                                                text-anchor="middle" font-family="Inter">Margao Hub</text>
+                                        </g>
+
+                                        <!-- RECEIVER: Vasco -->
+                                        <g transform="translate(650, 200)">
+                                            <!-- Target pulse -->
+                                            <circle r="20" fill="none" stroke="#10B981" stroke-width="1"
+                                                class="animate-pulse-ring origin-center" />
+                                            <circle r="8" fill="#000" stroke="#10B981" stroke-width="2"
+                                                filter="url(#glow-green-map)" />
+                                            <text x="0" y="-15" fill="#10B981" font-size="12" font-weight="600"
+                                                text-anchor="middle" font-family="Inter">Destination (Vasco)</text>
+                                        </g>
+
+                                        <!-- Live Carrier Marker -->
+                                        <g transform="translate(480, 268)"> <!-- Positioned along Margao->Vasco path -->
+                                            <circle r="14" fill="rgba(255, 90, 0, 0.2)"
+                                                class="animate-ping-slow origin-center" />
+                                            <circle r="6" fill="#FF5A00" stroke="#000" stroke-width="2"
+                                                filter="url(#glow-orange-map)" />
+                                            <rect x="-30" y="15" width="60" height="18" rx="4" fill="#000"
+                                                stroke="#FF5A00" stroke-width="1" />
+                                            <text x="0" y="27" fill="#FFF" font-size="9" font-weight="bold"
+                                                text-anchor="middle" font-family="Inter">AMIT S.</text>
+                                        </g>
+                                    </svg>
+                                </div>
+                            </div>
+
+                            <!-- Journey Timeline -->
+                            <div class="bg-uber-panel border border-uber-border rounded-xl flex flex-col">
+                                <div
+                                    class="p-4 border-b border-uber-border bg-black/40 flex justify-between items-center">
+                                    <h3 class="font-semibold flex items-center gap-2 text-white">
+                                        <iconify-icon icon="lucide:git-commit" class="text-uber-muted"></iconify-icon>
+                                        Relay Chain Handoffs
+                                    </h3>
+                                    <button
+                                        class="text-xs text-brand-neon hover:text-orange-400 transition-colors flex items-center gap-1">
+                                        <iconify-icon icon="lucide:download"></iconify-icon>
+                                        Export Log
+                                    </button>
+                                </div>
+
+                                <div class="p-6">
+                                    <div
+                                        class="relative ml-3 space-y-8 before:absolute before:inset-0 before:ml-[5px] before:-translate-x-px md:before:mx-auto md:before:translate-x-0 before:h-full before:w-0.5 before:bg-gradient-to-b before:from-brand-neon before:via-brand-neon before:to-uber-border">
+
+                                        <!-- Step 1: Origin -->
+                                        <div class="relative flex items-start gap-6 group">
+                                            <div
+                                                class="absolute left-0 w-3 h-3 rounded-full bg-brand-neon ring-4 ring-black z-10">
+                                            </div>
+                                            <div class="flex-1 ml-6">
+                                                <div
+                                                    class="flex flex-col sm:flex-row sm:justify-between sm:items-baseline">
+                                                    <h4 class="text-sm font-semibold text-white">Picked up from Origin
+                                                    </h4>
+                                                    <span class="text-xs font-mono text-uber-muted">09:15 IST, Oct
+                                                        24</span>
+                                                </div>
+                                                <p class="text-xs text-gray-400 mt-1 flex items-center gap-1">
+                                                    <iconify-icon icon="lucide:map-pin"
+                                                        class="text-brand-neon"></iconify-icon> Panaji Drop Point A
+                                                </p>
+                                                <div
+                                                    class="mt-2 bg-white/5 border border-white/10 rounded px-3 py-2 text-xs flex items-center gap-3 w-fit">
+                                                    <img src="https://i.pravatar.cc/150?u=carrier1"
+                                                        class="w-5 h-5 rounded-full grayscale opacity-80">
+                                                    <span class="text-gray-300">Carrier: Ramesh K. (#3321)</span>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <!-- Step 2: Hub Relay -->
+                                        <div class="relative flex items-start gap-6 group">
+                                            <div
+                                                class="absolute left-0 w-3 h-3 rounded-full bg-brand-neon ring-4 ring-black z-10">
+                                            </div>
+                                            <div class="flex-1 ml-6">
+                                                <div
+                                                    class="flex flex-col sm:flex-row sm:justify-between sm:items-baseline">
+                                                    <h4 class="text-sm font-semibold text-white">Relay Handoff Completed
+                                                    </h4>
+                                                    <span class="text-xs font-mono text-uber-muted">11:42 IST, Oct
+                                                        24</span>
+                                                </div>
+                                                <p class="text-xs text-gray-400 mt-1 flex items-center gap-1">
+                                                    <iconify-icon icon="lucide:building-2"
+                                                        class="text-brand-neon"></iconify-icon> Margao Central Sorting
+                                                    Hub
+                                                </p>
+                                                <div
+                                                    class="mt-2 bg-green-500/10 border border-green-500/20 text-green-400 rounded px-3 py-2 text-xs flex items-center gap-2 w-fit">
+                                                    <iconify-icon icon="lucide:shield-check"></iconify-icon>
+                                                    OTP Verified • 45s transfer time
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <!-- Step 3: Out for Delivery (Active) -->
+                                        <div class="relative flex items-start gap-6 group">
+                                            <div
+                                                class="absolute left-0 w-3 h-3 rounded-full bg-brand-neon ring-4 ring-brand-neon/30 animate-pulse z-10">
+                                            </div>
+                                            <div class="flex-1 ml-6">
+                                                <div
+                                                    class="flex flex-col sm:flex-row sm:justify-between sm:items-baseline">
+                                                    <h4 class="text-sm font-semibold text-brand-neon">Out for Last-Mile
+                                                        Delivery</h4>
+                                                    <span class="text-xs font-mono text-brand-neon">13:10 IST, Oct
+                                                        24</span>
+                                                </div>
+                                                <p class="text-xs text-gray-300 mt-1 flex items-center gap-1">
+                                                    <iconify-icon icon="lucide:navigation"
+                                                        class="text-blue-400"></iconify-icon> En route to Vasco da Gama
+                                                </p>
+                                            </div>
+                                        </div>
+
+                                        <!-- Step 4: Destination (Pending) -->
+                                        <div class="relative flex items-start gap-6 group opacity-50">
+                                            <div
+                                                class="absolute left-0 w-3 h-3 rounded-full bg-uber-border ring-4 ring-black z-10">
+                                            </div>
+                                            <div class="flex-1 ml-6">
+                                                <div
+                                                    class="flex flex-col sm:flex-row sm:justify-between sm:items-baseline">
+                                                    <h4 class="text-sm font-medium text-white">Delivered</h4>
+                                                    <span class="text-xs font-mono text-uber-muted">Pending</span>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                    </div>
+                                </div>
+                            </div>
+
+                        </div>
+
+                        <!-- Right Column: Carrier, Comms, PoD -->
+                        <div class="space-y-6">
+
+                            <!-- Current Carrier Profile -->
+                            <div
+                                class="bg-uber-panel border border-brand-neon/30 shadow-[0_0_15px_rgba(255,90,0,0.05)] rounded-xl overflow-hidden relative">
+                                <div
+                                    class="absolute top-0 right-0 w-32 h-32 bg-brand-neon/10 rounded-full blur-3xl pointer-events-none">
+                                </div>
+                                <div
+                                    class="p-4 border-b border-uber-border bg-black/40 flex justify-between items-center">
+                                    <h3 class="text-sm font-semibold text-white">Active Assignment</h3>
+                                    <span class="flex h-2 w-2 relative">
+                                        <span
+                                            class="animate-ping absolute inline-flex h-full w-full rounded-full bg-brand-neon opacity-75"></span>
+                                        <span class="relative inline-flex rounded-full h-2 w-2 bg-brand-neon"></span>
+                                    </span>
+                                </div>
+
+                                <div class="p-5">
+                                    <div class="flex items-center gap-4 mb-4">
+                                        <div
+                                            class="w-14 h-14 rounded-full border-2 border-brand-neon overflow-hidden relative">
+                                            <img src="https://pquxfbbxflqvtidtlrhl.supabase.co/storage/v1/object/public/hmac-uploads/brand/aa611a48-0f31-4fc3-91b8-a97e15fbee97/assets/7d9bed9b-8b0f-4125-90a3-af750783d201.png"
+                                                alt="Carrier" class="w-full h-full object-cover grayscale">
+                                        </div>
+                                        <div>
+                                            <h4 class="font-bold text-white text-lg">Amit Sharma</h4>
+                                            <p class="text-xs text-uber-muted font-mono">ID: #1102 • Trust Score: 99</p>
+                                        </div>
+                                    </div>
+
+                                    <div class="bg-white/5 rounded-lg p-3 text-xs mb-4 space-y-2">
+                                        <div class="flex justify-between">
+                                            <span class="text-gray-400">Current Speed</span>
+                                            <span class="text-white font-mono">42 km/h</span>
+                                        </div>
+                                        <div class="flex justify-between">
+                                            <span class="text-gray-400">Battery Level</span>
+                                            <span class="text-green-400 font-mono">84%</span>
+                                        </div>
+                                        <div class="flex justify-between">
+                                            <span class="text-gray-400">Distance to Drop</span>
+                                            <span class="text-brand-neon font-mono font-bold">4.2 km</span>
+                                        </div>
+                                    </div>
+
+                                    <div class="flex gap-2">
+                                        <button
+                                            class="flex-1 bg-white text-black hover:bg-gray-200 py-2 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2">
+                                            <iconify-icon icon="lucide:phone"></iconify-icon>
+                                            Call
+                                        </button>
+                                        <button
+                                            class="flex-1 bg-white/10 hover:bg-white/20 text-white py-2 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2">
+                                            <iconify-icon icon="lucide:message-square"></iconify-icon>
+                                            Msg
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Communication Log -->
+                            <div class="bg-uber-panel border border-uber-border rounded-xl flex flex-col h-[280px]">
+                                <div
+                                    class="p-4 border-b border-uber-border bg-black/40 flex justify-between items-center">
+                                    <h3 class="text-sm font-semibold text-white flex items-center gap-2">
+                                        <iconify-icon icon="lucide:history" class="text-uber-muted"></iconify-icon>
+                                        Customer Comms
+                                    </h3>
+                                </div>
+                                <div class="flex-1 overflow-y-auto p-4 space-y-4">
+
+                                    <!-- Msg 1 -->
+                                    <div class="flex flex-col gap-1">
+                                        <div
+                                            class="bg-white/5 rounded-lg rounded-tl-none p-3 text-xs text-gray-300 w-[85%]">
+                                            Your KhatKhat parcel PKG-992A7 has been picked up from origin.
+                                        </div>
+                                        <span class="text-[10px] text-gray-500 ml-1">System SMS • 09:15</span>
+                                    </div>
+
+                                    <!-- Msg 2 -->
+                                    <div class="flex flex-col gap-1">
+                                        <div
+                                            class="bg-white/5 rounded-lg rounded-tl-none p-3 text-xs text-gray-300 w-[85%]">
+                                            Parcel arrived at Margao sorting hub.
+                                        </div>
+                                        <span class="text-[10px] text-gray-500 ml-1">App Push • 11:42</span>
+                                    </div>
+
+                                    <!-- Msg 3 -->
+                                    <div class="flex flex-col gap-1 items-end">
+                                        <div
+                                            class="bg-brand-neon/20 border border-brand-neon/30 text-white rounded-lg rounded-tr-none p-3 text-xs w-[85%]">
+                                            Out for delivery! Your delivery OTP is <strong
+                                                class="font-mono">8492</strong>. Do not share this with anyone until you
+                                            receive the package.
+                                        </div>
+                                        <span class="text-[10px] text-gray-500 mr-1">WhatsApp • 13:10</span>
+                                    </div>
+
+                                </div>
+                            </div>
+
+                            <!-- Proof of Delivery Box -->
+                            <div class="bg-uber-panel border border-uber-border rounded-xl p-4">
+                                <h3 class="text-sm font-semibold text-white mb-3 flex items-center gap-2">
+                                    <iconify-icon icon="lucide:pen-tool" class="text-uber-muted"></iconify-icon>
+                                    Proof of Delivery
+                                </h3>
+                                <div
+                                    class="border-2 border-dashed border-uber-border rounded-lg h-24 flex flex-col items-center justify-center text-uber-muted bg-black/30">
+                                    <iconify-icon icon="lucide:scan-line"
+                                        class="text-2xl mb-1 opacity-50"></iconify-icon>
+                                    <span class="text-xs">Awaiting Customer OTP & Signature</span>
+                                </div>
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                </div>
+            </div>
+        </main>
+    </div>
+
+</body>
+
+</html>

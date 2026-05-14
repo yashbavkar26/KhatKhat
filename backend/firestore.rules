@@ -1,0 +1,76 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isSystem() {
+      return isSignedIn() && request.auth.token.admin == true;
+    }
+
+    function isSelf(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isAssignedCarrier(parcel) {
+      return isSignedIn() && (parcel.carrier1Id == request.auth.uid || parcel.carrier2Id == request.auth.uid);
+    }
+
+    function isSender(parcel) {
+      return isSignedIn() && parcel.senderId == request.auth.uid;
+    }
+
+    // users: read/write own document only
+    match /users/{userId} {
+      allow read, write: if isSelf(userId);
+    }
+
+    // parcels: sender and assigned carriers can read
+    // sender can create
+    // status updates by assigned carrier or system
+    match /parcels/{parcelId} {
+      allow read: if isSender(resource.data) || isAssignedCarrier(resource.data) || isSystem();
+
+      allow create: if isSignedIn()
+                    && request.resource.data.senderId == request.auth.uid;
+
+      allow update: if isSystem()
+                    || (
+                      isAssignedCarrier(resource.data)
+                      && request.resource.data.senderId == resource.data.senderId
+                      && request.resource.data.createdAt == resource.data.createdAt
+                    )
+                    || (
+                      isSender(resource.data)
+                      && resource.data.status in ['PENDING', 'MATCHING']
+                      && request.resource.data.status == 'CANCELLED'
+                    );
+
+      allow delete: if false;
+    }
+
+    // carriers: any authenticated user can read; only own document writable
+    match /carriers/{carrierId} {
+      allow read: if isSignedIn();
+      allow create, update: if isSelf(carrierId) || isSystem();
+      allow delete: if false;
+    }
+
+    // notifications: only owner can read
+    // writes restricted to system/backend
+    match /notifications/{notificationId} {
+      allow read: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow create, update, delete: if isSystem();
+    }
+
+    // ratings: authenticated users can create; read own ratings
+    match /ratings/{ratingId} {
+      allow create: if isSignedIn() && request.resource.data.fromUserId == request.auth.uid;
+      allow read: if isSignedIn()
+                  && (resource.data.fromUserId == request.auth.uid || resource.data.toUserId == request.auth.uid);
+      allow update, delete: if false;
+    }
+  }
+}

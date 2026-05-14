@@ -1,0 +1,720 @@
+Page: Fraud Investigation Dashboard
+
+```html
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fraud Investigation - KhatKhat Admin</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://code.iconify.design/iconify-icon/1.0.7/iconify-icon.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        uber: {
+                            black: '#000000',
+                            panel: '#0A0A0A',
+                            border: '#1A1A1A',
+                            text: '#FFFFFF',
+                            muted: '#808080',
+                        },
+                        brand: {
+                            neon: '#FF5A00',
+                            dark: '#1a0900',
+                        }
+                    },
+                    animation: {
+                        'flow': 'flow 2s linear infinite',
+                        'flow-reverse': 'flow-reverse 2s linear infinite',
+                        'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                        'pulse-ring': 'pulse-ring 2s cubic-bezier(0.215, 0.61, 0.355, 1) infinite',
+                        'pulse-fast': 'pulse 1s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                    },
+                    keyframes: {
+                        flow: {
+                            '0%': { strokeDashoffset: '100' },
+                            '100%': { strokeDashoffset: '0' },
+                        },
+                        'flow-reverse': {
+                            '0%': { strokeDashoffset: '0' },
+                            '100%': { strokeDashoffset: '100' },
+                        },
+                        'pulse-ring': {
+                            '0%': { transform: 'scale(0.8)', opacity: '0.8' },
+                            '100%': { transform: 'scale(2.5)', opacity: '0' },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* Custom Scrollbar for sleek UI */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #000;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #222;
+            border-radius: 10px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #444;
+        }
+
+        /* Glassmorphism utility for floating panels */
+        .glass-panel {
+            background: rgba(10, 10, 10, 0.7);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        /* Neon Glow utility */
+        .text-neon {
+            text-shadow: 0 0 10px rgba(255, 90, 0, 0.5);
+        }
+
+        .text-neon-red {
+            text-shadow: 0 0 10px rgba(239, 68, 68, 0.5);
+        }
+
+        .border-neon {
+            box-shadow: 0 0 15px rgba(255, 90, 0, 0.2) inset, 0 0 15px rgba(255, 90, 0, 0.2);
+        }
+    </style>
+    <style>
+        sd-component {
+            display: block;
+        }
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/petite-vue@0.4.1/dist/petite-vue.iife.js" defer init></script>
+</head>
+
+<body>
+    <div
+        class="bg-uber-black text-uber-text font-sans selection:bg-brand-neon selection:text-white overflow-hidden flex h-screen w-full">
+
+        <!-- Sidebar Navigation -->
+        <!-- component: SidebarNavigation (cde169a1-c9a9-413f-bd2f-1f1c93606389) -->
+        <div
+            v-scope="{ ...{&quot;activeItem&quot;:&quot;fraud&quot;,&quot;fraudCount&quot;:3,&quot;overviewHref&quot;:&quot;#overview&quot;,&quot;relayHref&quot;:&quot;admin.html&quot;,&quot;mapHref&quot;:&quot;#map&quot;,&quot;parcelsHref&quot;:&quot;parcel.html&quot;,&quot;usersHref&quot;:&quot;career_profile.html&quot;,&quot;fraudHref&quot;:&quot;fraud_investigation.html&quot;,&quot;aiHref&quot;:&quot;route_optimization.html&quot;,&quot;revenueHref&quot;:&quot;#revenue&quot;,&quot;adminName&quot;:&quot;Arjun Desk&quot;,&quot;adminRole&quot;:&quot;Super Admin&quot;,&quot;adminAvatar&quot;:&quot;https://i.pravatar.cc/150?u=admin&quot;}, $emit() {} }">
+            <aside class="w-64 flex-shrink-0 border-r border-uber-border bg-uber-black flex flex-col z-20 relative">
+                <!-- Logo Area -->
+                <div class="h-16 flex items-center px-6 border-b border-uber-border">
+                    <div class="flex items-center gap-3">
+                        <div class="w-8 h-8 bg-brand-neon rounded-sm flex items-center justify-center relative">
+                            <div class="absolute inset-0 bg-brand-neon blur-md opacity-50"></div>
+                            <iconify-icon icon="lucide:box" class="text-white relative z-10 text-lg"></iconify-icon>
+                        </div>
+                        <span class="font-bold tracking-tight text-xl">KhatKhat</span>
+                    </div>
+                </div>
+
+                <!-- Nav Links -->
+                <nav class="flex-1 overflow-y-auto py-6 px-3 space-y-1">
+                    <p class="px-3 text-xs font-semibold text-uber-muted uppercase tracking-wider mb-2">Logistics Core
+                    </p>
+
+                    <a :href="overviewHref"
+                        :class="{ 'text-white bg-white/5 border border-white/10': activeItem === 'overview', 'text-uber-muted hover:text-white': activeItem !== 'overview' }"
+                        class="flex items-center gap-3 px-3 py-2.5 text-sm font-medium rounded-lg transition-colors">
+                        <iconify-icon icon="lucide:layout-dashboard" class="text-lg"></iconify-icon>
+                        Overview Analytics
+                    </a>
+
+                    <a :href="relayHref"
+                        :class="{ 'text-white bg-white/5 border border-white/10': activeItem === 'relay', 'text-uber-muted hover:text-white': activeItem !== 'relay' }"
+                        class="flex items-center gap-3 px-3 py-2.5 text-sm font-medium rounded-lg transition-colors relative overflow-hidden">
+                        <div v-if="activeItem === 'relay'"
+                            class="absolute left-0 top-0 bottom-0 w-1 bg-brand-neon shadow-[0_0_8px_#FF5A00]"></div>
+                        <iconify-icon :class="{ 'text-brand-neon': activeItem === 'relay' }" icon="lucide:network"
+                            class="text-lg"></iconify-icon>
+                        Relay Chain Visualizer
+                    </a>
+
+                    <a :href="mapHref"
+                        :class="{ 'text-white bg-white/5 border border-white/10': activeItem === 'map', 'text-uber-muted hover:text-white': activeItem !== 'map' }"
+                        class="flex items-center justify-between px-3 py-2.5 text-sm font-medium rounded-lg transition-colors">
+                        <div class="flex items-center gap-3">
+                            <iconify-icon icon="lucide:map" class="text-lg"></iconify-icon>
+                            Live Operations
+                        </div>
+                        <span class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
+                    </a>
+
+                    <a :href="parcelsHref"
+                        :class="{ 'text-white bg-white/5 border border-white/10': activeItem === 'parcels', 'text-uber-muted hover:text-white': activeItem !== 'parcels' }"
+                        class="flex items-center gap-3 px-3 py-2.5 text-sm font-medium rounded-lg transition-colors">
+                        <iconify-icon icon="lucide:package" class="text-lg"></iconify-icon>
+                        Parcel Management
+                    </a>
+
+                    <div class="pt-4 pb-2">
+                        <p class="px-3 text-xs font-semibold text-uber-muted uppercase tracking-wider mb-2">Network
+                            Health</p>
+                    </div>
+
+                    <a :href="usersHref"
+                        :class="{ 'text-white bg-white/5 border border-white/10': activeItem === 'users', 'text-uber-muted hover:text-white': activeItem !== 'users' }"
+                        class="flex items-center gap-3 px-3 py-2.5 text-sm font-medium rounded-lg transition-colors">
+                        <iconify-icon icon="lucide:users" class="text-lg"></iconify-icon>
+                        Users & Carriers
+                    </a>
+
+                    <a :href="fraudHref"
+                        :class="{ 'text-white bg-white/5 border border-white/10': activeItem === 'fraud', 'text-uber-muted hover:text-white': activeItem !== 'fraud' }"
+                        class="flex items-center justify-between px-3 py-2.5 text-sm font-medium rounded-lg transition-colors">
+                        <div class="flex items-center gap-3">
+                            <iconify-icon icon="lucide:shield-alert" class="text-lg"></iconify-icon>
+                            Trust & Fraud
+                        </div>
+                        <span class="bg-white/10 text-xs px-2 py-0.5 rounded-full text-white">{{ fraudCount }}</span>
+                    </a>
+
+                    <a :href="aiHref"
+                        :class="{ 'text-white bg-white/5 border border-white/10': activeItem === 'ai', 'text-uber-muted hover:text-white': activeItem !== 'ai' }"
+                        class="flex items-center gap-3 px-3 py-2.5 text-sm font-medium rounded-lg transition-colors">
+                        <iconify-icon icon="lucide:cpu" class="text-lg"></iconify-icon>
+                        AI Matching Engine
+                    </a>
+
+                    <a :href="revenueHref"
+                        :class="{ 'text-white bg-white/5 border border-white/10': activeItem === 'revenue', 'text-uber-muted hover:text-white': activeItem !== 'revenue' }"
+                        class="flex items-center gap-3 px-3 py-2.5 text-sm font-medium rounded-lg transition-colors">
+                        <iconify-icon icon="lucide:wallet" class="text-lg"></iconify-icon>
+                        Revenue (Razorpay)
+                    </a>
+                </nav>
+
+                <!-- User Profile Bottom -->
+                <div class="p-4 border-t border-uber-border">
+                    <button @click="$emit('profileClick')"
+                        class="flex items-center gap-3 w-full hover:bg-white/5 p-2 rounded-lg transition-colors text-left">
+                        <div
+                            class="w-8 h-8 rounded-full bg-uber-border flex items-center justify-center overflow-hidden">
+                            <img :src="adminAvatar" :alt="adminName" class="w-full h-full object-cover">
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <p class="text-sm font-medium truncate">{{ adminName }}</p>
+                            <p class="text-xs text-uber-muted truncate">{{ adminRole }}</p>
+                        </div>
+                        <iconify-icon icon="lucide:chevrons-up-down" class="text-uber-muted"></iconify-icon>
+                    </button>
+                </div>
+            </aside>
+        </div>
+        <!-- /component: SidebarNavigation (cde169a1-c9a9-413f-bd2f-1f1c93606389) -->
+
+        <!-- Main Content Area -->
+        <main class="flex-1 flex flex-col h-screen relative bg-uber-black">
+
+            <!-- Background Grid Pattern -->
+            <div class="absolute inset-0 pointer-events-none"
+                style="background-image: radial-gradient(rgba(255,255,255,0.05) 1px, transparent 1px); background-size: 32px 32px; opacity: 0.5;">
+            </div>
+
+            <!-- Top Header -->
+            <!-- component: PageHeader (78fd64bc-351e-40da-bce0-eb45478205db) -->
+            <div
+                v-scope="{ ...{&quot;pageTitle&quot;:&quot;Investigation: Case #FR-8492&quot;,&quot;regionStatus&quot;:&quot;Critical Alert - Active&quot;,&quot;searchPlaceholder&quot;:&quot;Search tracking ID, carrier...&quot;,&quot;notificationCount&quot;:1}, $emit() {} }">
+                <header
+                    class="h-16 flex items-center justify-between px-8 border-b border-uber-border bg-uber-black/80 backdrop-blur-md z-30 sticky top-0">
+                    <div class="flex items-center gap-4">
+                        <h1 class="text-lg font-semibold tracking-tight">{{ pageTitle }}</h1>
+                        <div class="h-4 w-px bg-uber-border"></div>
+                        <div
+                            class="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 border border-white/10 text-xs font-medium">
+                            <span class="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></span>
+                            {{ regionStatus }}
+                        </div>
+                    </div>
+
+                    <div class="flex items-center gap-4">
+                        <!-- Global Search -->
+                        <div class="relative hidden md:block">
+                            <iconify-icon icon="lucide:search"
+                                class="absolute left-3 top-1/2 -translate-y-1/2 text-uber-muted text-sm"></iconify-icon>
+                            <input type="text" :placeholder="searchPlaceholder"
+                                @input="$emit('search', $event.target.value)"
+                                class="bg-uber-panel border border-uber-border rounded-lg pl-9 pr-4 py-1.5 text-sm focus:outline-none focus:border-brand-neon focus:ring-1 focus:ring-brand-neon transition-all w-64 placeholder-uber-muted">
+                            <div class="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
+                                <kbd
+                                    class="bg-white/10 border border-white/10 rounded px-1.5 text-[10px] text-uber-muted">⌘</kbd>
+                                <kbd
+                                    class="bg-white/10 border border-white/10 rounded px-1.5 text-[10px] text-uber-muted">K</kbd>
+                            </div>
+                        </div>
+
+                        <button @click="$emit('notificationClick')"
+                            class="relative p-2 text-uber-muted hover:text-white transition-colors">
+                            <iconify-icon icon="lucide:bell" class="text-xl"></iconify-icon>
+                            <span v-if="notificationCount > 0"
+                                class="absolute top-1.5 right-1.5 w-2 h-2 bg-brand-neon rounded-full border-2 border-uber-black"></span>
+                        </button>
+                        <button @click="$emit('settingsClick')"
+                            class="p-2 text-uber-muted hover:text-white transition-colors">
+                            <iconify-icon icon="lucide:settings" class="text-xl"></iconify-icon>
+                        </button>
+                    </div>
+                </header>
+            </div>
+            <!-- /component: PageHeader (78fd64bc-351e-40da-bce0-eb45478205db) -->
+
+            <!-- Scrollable Content -->
+            <div class="flex-1 overflow-y-auto p-8 relative z-10">
+                <div class="max-w-7xl mx-auto space-y-6">
+
+                    <!-- Action Bar -->
+                    <div
+                        class="flex justify-between items-center bg-uber-panel/50 border border-red-900/30 p-4 rounded-xl backdrop-blur-sm">
+                        <div class="flex items-center gap-3">
+                            <div
+                                class="w-10 h-10 rounded-full bg-red-500/10 border border-red-500/20 flex items-center justify-center">
+                                <iconify-icon icon="lucide:shield-alert"
+                                    class="text-red-500 text-xl animate-pulse-fast"></iconify-icon>
+                            </div>
+                            <div>
+                                <h2 class="text-white font-bold tracking-tight">Carrier Deviation & OTP Farming</h2>
+                                <p class="text-xs text-red-400">Triggered by AI Match Engine at 14:22 IST</p>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-3">
+                            <span class="text-xs text-uber-muted mr-2">Case Time Open: 00:42:15</span>
+                            <button
+                                class="px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-sm font-medium transition-colors">
+                                Export Dossier
+                            </button>
+                            <button
+                                class="px-4 py-2 bg-brand-neon hover:bg-[#ff7326] text-black rounded-lg text-sm font-bold transition-colors">
+                                Take Action
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Top Metrics Row -->
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                        <!-- component: MetricCard (559912a6-356c-4fcb-8921-e00edf89bc4c) -->
+                        <div
+                            v-scope="{ ...{&quot;label&quot;:&quot;Trust Score Drop&quot;,&quot;value&quot;:&quot;-45 pts&quot;,&quot;icon&quot;:&quot;lucide:activity&quot;,&quot;iconColor&quot;:&quot;text-red-500&quot;,&quot;trendValue&quot;:&quot;Current: 32/100&quot;,&quot;trendIcon&quot;:&quot;&quot;,&quot;trendClass&quot;:&quot;text-red-500&quot;,&quot;hasGlow&quot;:true,&quot;glowColor&quot;:&quot;#EF4444&quot;,&quot;glowOpacity&quot;:0.1}, $emit() {} }">
+                            <div class="bg-uber-panel border border-uber-border rounded-xl p-5 relative overflow-hidden group hover:border-white/20 transition-colors"
+                                @click="$emit('click', { label: label })">
+                                <div v-if="hasGlow"
+                                    class="absolute top-0 right-0 w-24 h-24 rounded-full blur-2xl group-hover:opacity-100 transition-opacity"
+                                    :style="{ background: glowColor, opacity: glowOpacity }"></div>
+                                <p class="text-sm text-uber-muted font-medium mb-1 flex items-center gap-2">
+                                    <iconify-icon :icon="icon" :class="iconColor"></iconify-icon>
+                                    {{ label }}
+                                </p>
+                                <div class="flex items-baseline gap-2">
+                                    <h2 class="text-3xl font-bold tracking-tight">{{ value }}</h2>
+                                    <span v-if="trendValue" :class="trendClass"
+                                        class="text-xs font-medium flex items-center">
+                                        <iconify-icon v-if="trendIcon" :icon="trendIcon" class="mr-1"></iconify-icon> {{
+                                        trendValue }}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- /component: MetricCard (559912a6-356c-4fcb-8921-e00edf89bc4c) -->
+                        <!-- component: MetricCard (559912a6-356c-4fcb-8921-e00edf89bc4c) -->
+                        <div
+                            v-scope="{ ...{&quot;label&quot;:&quot;Parcels at Risk&quot;,&quot;value&quot;:&quot;3 High Value&quot;,&quot;icon&quot;:&quot;lucide:package-open&quot;,&quot;iconColor&quot;:&quot;text-brand-neon&quot;,&quot;trendValue&quot;:&quot;₹84,500 Exposure&quot;,&quot;trendIcon&quot;:&quot;&quot;,&quot;trendClass&quot;:&quot;text-brand-neon&quot;,&quot;hasGlow&quot;:true,&quot;glowColor&quot;:&quot;#FF5A00&quot;,&quot;glowOpacity&quot;:0.05}, $emit() {} }">
+                            <div class="bg-uber-panel border border-uber-border rounded-xl p-5 relative overflow-hidden group hover:border-white/20 transition-colors"
+                                @click="$emit('click', { label: label })">
+                                <div v-if="hasGlow"
+                                    class="absolute top-0 right-0 w-24 h-24 rounded-full blur-2xl group-hover:opacity-100 transition-opacity"
+                                    :style="{ background: glowColor, opacity: glowOpacity }"></div>
+                                <p class="text-sm text-uber-muted font-medium mb-1 flex items-center gap-2">
+                                    <iconify-icon :icon="icon" :class="iconColor"></iconify-icon>
+                                    {{ label }}
+                                </p>
+                                <div class="flex items-baseline gap-2">
+                                    <h2 class="text-3xl font-bold tracking-tight">{{ value }}</h2>
+                                    <span v-if="trendValue" :class="trendClass"
+                                        class="text-xs font-medium flex items-center">
+                                        <iconify-icon v-if="trendIcon" :icon="trendIcon" class="mr-1"></iconify-icon> {{
+                                        trendValue }}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- /component: MetricCard (559912a6-356c-4fcb-8921-e00edf89bc4c) -->
+                        <!-- component: MetricCard (559912a6-356c-4fcb-8921-e00edf89bc4c) -->
+                        <div
+                            v-scope="{ ...{&quot;label&quot;:&quot;OTP Failures&quot;,&quot;value&quot;:&quot;12 Attempts&quot;,&quot;icon&quot;:&quot;lucide:key&quot;,&quot;iconColor&quot;:&quot;text-orange-400&quot;,&quot;trendValue&quot;:&quot;Across 3 nodes&quot;,&quot;trendIcon&quot;:&quot;&quot;,&quot;trendClass&quot;:&quot;text-uber-muted&quot;,&quot;hasGlow&quot;:false,&quot;glowColor&quot;:&quot;#FF5A00&quot;,&quot;glowOpacity&quot;:0.05}, $emit() {} }">
+                            <div class="bg-uber-panel border border-uber-border rounded-xl p-5 relative overflow-hidden group hover:border-white/20 transition-colors"
+                                @click="$emit('click', { label: label })">
+                                <div v-if="hasGlow"
+                                    class="absolute top-0 right-0 w-24 h-24 rounded-full blur-2xl group-hover:opacity-100 transition-opacity"
+                                    :style="{ background: glowColor, opacity: glowOpacity }"></div>
+                                <p class="text-sm text-uber-muted font-medium mb-1 flex items-center gap-2">
+                                    <iconify-icon :icon="icon" :class="iconColor"></iconify-icon>
+                                    {{ label }}
+                                </p>
+                                <div class="flex items-baseline gap-2">
+                                    <h2 class="text-3xl font-bold tracking-tight">{{ value }}</h2>
+                                    <span v-if="trendValue" :class="trendClass"
+                                        class="text-xs font-medium flex items-center">
+                                        <iconify-icon v-if="trendIcon" :icon="trendIcon" class="mr-1"></iconify-icon> {{
+                                        trendValue }}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- /component: MetricCard (559912a6-356c-4fcb-8921-e00edf89bc4c) -->
+                        <!-- component: MetricCard (559912a6-356c-4fcb-8921-e00edf89bc4c) -->
+                        <div
+                            v-scope="{ ...{&quot;label&quot;:&quot;Distance Deviated&quot;,&quot;value&quot;:&quot;4.2 km&quot;,&quot;icon&quot;:&quot;lucide:map-pin-off&quot;,&quot;iconColor&quot;:&quot;text-purple-400&quot;,&quot;trendValue&quot;:&quot;Off AI-Route&quot;,&quot;trendIcon&quot;:&quot;&quot;,&quot;trendClass&quot;:&quot;text-uber-muted&quot;,&quot;hasGlow&quot;:false,&quot;glowColor&quot;:&quot;#FF5A00&quot;,&quot;glowOpacity&quot;:0.05}, $emit() {} }">
+                            <div class="bg-uber-panel border border-uber-border rounded-xl p-5 relative overflow-hidden group hover:border-white/20 transition-colors"
+                                @click="$emit('click', { label: label })">
+                                <div v-if="hasGlow"
+                                    class="absolute top-0 right-0 w-24 h-24 rounded-full blur-2xl group-hover:opacity-100 transition-opacity"
+                                    :style="{ background: glowColor, opacity: glowOpacity }"></div>
+                                <p class="text-sm text-uber-muted font-medium mb-1 flex items-center gap-2">
+                                    <iconify-icon :icon="icon" :class="iconColor"></iconify-icon>
+                                    {{ label }}
+                                </p>
+                                <div class="flex items-baseline gap-2">
+                                    <h2 class="text-3xl font-bold tracking-tight">{{ value }}</h2>
+                                    <span v-if="trendValue" :class="trendClass"
+                                        class="text-xs font-medium flex items-center">
+                                        <iconify-icon v-if="trendIcon" :icon="trendIcon" class="mr-1"></iconify-icon> {{
+                                        trendValue }}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- /component: MetricCard (559912a6-356c-4fcb-8921-e00edf89bc4c) -->
+                    </div>
+
+                    <!-- Main Dashboard Layout -->
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+                        <!-- Left Column: Details & Evidence (Spans 2 cols) -->
+                        <div class="lg:col-span-2 space-y-6">
+
+                            <!-- Alert Evidence Panel -->
+                            <div
+                                class="bg-uber-panel border border-uber-border rounded-xl flex flex-col overflow-hidden">
+                                <div
+                                    class="p-4 border-b border-uber-border flex justify-between items-center bg-black/40">
+                                    <h3 class="font-semibold flex items-center gap-2">
+                                        <iconify-icon icon="lucide:microscope" class="text-uber-muted"></iconify-icon>
+                                        Investigation Evidence
+                                    </h3>
+                                    <span
+                                        class="px-2 py-0.5 rounded text-[10px] font-bold bg-red-500/20 text-red-500 border border-red-500/30 uppercase tracking-widest">High
+                                        Confidence</span>
+                                </div>
+
+                                <div class="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    <!-- Evidence 1: Route Deviation Map -->
+                                    <div class="space-y-3">
+                                        <div class="flex justify-between items-center">
+                                            <h4 class="text-sm font-medium text-gray-300 flex items-center gap-2">
+                                                <iconify-icon icon="lucide:route" class="text-blue-400"></iconify-icon>
+                                                Route Anomaly
+                                            </h4>
+                                            <button
+                                                class="text-[10px] text-uber-muted hover:text-white uppercase tracking-wider">Expand</button>
+                                        </div>
+                                        <div
+                                            class="h-40 bg-[#050505] rounded-lg border border-white/5 relative overflow-hidden">
+                                            <!-- Fake Map Background -->
+                                            <div class="absolute inset-0 opacity-20"
+                                                style="background-image: repeating-linear-gradient(#333 0 1px, transparent 1px 100%), repeating-linear-gradient(90deg, #333 0 1px, transparent 1px 100%); background-size: 20px 20px;">
+                                            </div>
+
+                                            <svg class="w-full h-full" viewBox="0 0 200 150">
+                                                <!-- AI Planned Route -->
+                                                <path d="M 20 120 L 100 80 L 180 40" stroke="#808080" stroke-width="2"
+                                                    stroke-dasharray="4 4" fill="none" opacity="0.5" />
+                                                <!-- Actual Deviated Route -->
+                                                <path d="M 20 120 L 80 140 L 140 100 L 160 50" stroke="#EF4444"
+                                                    stroke-width="2" fill="none" />
+
+                                                <!-- Points -->
+                                                <circle cx="20" cy="120" r="4" fill="#FFF" />
+                                                <circle cx="180" cy="40" r="4" fill="#FFF" opacity="0.5" />
+
+                                                <!-- Current Location Marker -->
+                                                <g transform="translate(160, 50)">
+                                                    <circle r="12" fill="none" stroke="#EF4444" stroke-width="1"
+                                                        class="animate-pulse-ring origin-center" />
+                                                    <circle r="4" fill="#EF4444" />
+                                                </g>
+                                            </svg>
+
+                                            <div
+                                                class="absolute bottom-2 left-2 right-2 bg-black/80 backdrop-blur-md rounded px-2 py-1 border border-white/10">
+                                                <p class="text-[10px] text-gray-400"><span
+                                                        class="text-red-400 font-mono">4.2km</span> deviation near Vasco
+                                                    Industrial Estate.</p>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Evidence 2: OTP Log -->
+                                    <div class="space-y-3">
+                                        <div class="flex justify-between items-center">
+                                            <h4 class="text-sm font-medium text-gray-300 flex items-center gap-2">
+                                                <iconify-icon icon="lucide:terminal"
+                                                    class="text-orange-400"></iconify-icon>
+                                                System Logs
+                                            </h4>
+                                            <button
+                                                class="text-[10px] text-uber-muted hover:text-white uppercase tracking-wider">Raw
+                                                Data</button>
+                                        </div>
+                                        <div
+                                            class="h-40 bg-[#050505] rounded-lg border border-white/5 p-3 overflow-y-auto font-mono text-[10px] space-y-2">
+                                            <div class="text-gray-500">[14:21:05] INF: Carrier #8492 entering geofence
+                                                zone Z-94</div>
+                                            <div class="text-yellow-500">[14:22:12] WRN: Handoff requested outside
+                                                designated hub</div>
+                                            <div class="text-red-500 flex items-start gap-2">
+                                                <span>[14:22:30]</span>
+                                                <span>ERR: OTP validation failed for PKG-A92B (Attempt 1/3)<br>Input:
+                                                    8492, Expected: ****</span>
+                                            </div>
+                                            <div class="text-red-500 flex items-start gap-2">
+                                                <span>[14:22:45]</span>
+                                                <span>ERR: OTP validation failed for PKG-A92B (Attempt 2/3)<br>Input:
+                                                    1124, Expected: ****</span>
+                                            </div>
+                                            <div class="text-red-500 flex items-start gap-2">
+                                                <span>[14:23:01]</span>
+                                                <span>ERR: OTP validation failed for PKG-A92B (Attempt 3/3)<br>Input:
+                                                    9942, Expected: ****</span>
+                                            </div>
+                                            <div class="text-brand-neon">[14:23:05] FTL: Security lock engaged on
+                                                PKG-A92B. Alert triggered.</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Involved Entities -->
+                            <div class="bg-uber-panel border border-uber-border rounded-xl overflow-hidden">
+                                <div class="p-4 border-b border-uber-border bg-black/40">
+                                    <h3 class="font-semibold flex items-center gap-2">
+                                        <iconify-icon icon="lucide:users-2" class="text-uber-muted"></iconify-icon>
+                                        Involved Entities
+                                    </h3>
+                                </div>
+
+                                <div
+                                    class="grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-uber-border">
+                                    <!-- Carrier -->
+                                    <div class="p-5">
+                                        <h4 class="text-xs font-semibold text-uber-muted uppercase tracking-wider mb-4">
+                                            Suspect Carrier</h4>
+                                        <div class="flex items-start gap-4">
+                                            <div class="w-12 h-12 rounded-lg bg-uber-border overflow-hidden relative">
+                                                <img src="https://pquxfbbxflqvtidtlrhl.supabase.co/storage/v1/object/public/hmac-uploads/brand/aa611a48-0f31-4fc3-91b8-a97e15fbee97/assets/7d9bed9b-8b0f-4125-90a3-af750783d201.png"
+                                                    class="w-full h-full object-cover grayscale">
+                                                <div class="absolute inset-0 border-2 border-red-500 rounded-lg"></div>
+                                            </div>
+                                            <div>
+                                                <div class="flex items-center gap-2">
+                                                    <h5 class="font-bold">Rahul D.</h5>
+                                                    <span
+                                                        class="px-1.5 py-0.5 rounded text-[8px] font-bold bg-red-500/20 text-red-500 border border-red-500/30 uppercase">Suspended</span>
+                                                </div>
+                                                <p class="text-xs text-uber-muted font-mono mt-0.5">ID: #8492-Goa</p>
+                                                <div class="flex items-center gap-3 mt-2 text-xs">
+                                                    <span class="flex items-center gap-1 text-gray-400"><iconify-icon
+                                                            icon="lucide:star"></iconify-icon> 3.2</span>
+                                                    <span class="flex items-center gap-1 text-gray-400"><iconify-icon
+                                                            icon="lucide:clock"></iconify-icon> 4mo tenure</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <button
+                                            class="mt-4 w-full py-1.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded text-xs font-medium transition-colors text-gray-300">
+                                            View Full Profile
+                                        </button>
+                                    </div>
+
+                                    <!-- Parcels -->
+                                    <div class="p-5">
+                                        <h4 class="text-xs font-semibold text-uber-muted uppercase tracking-wider mb-4">
+                                            Affected Cargo</h4>
+                                        <div class="space-y-3">
+                                            <div
+                                                class="flex items-center justify-between p-2 rounded-lg bg-white/5 border border-white/5">
+                                                <div class="flex items-center gap-3">
+                                                    <iconify-icon icon="lucide:smartphone"
+                                                        class="text-uber-muted"></iconify-icon>
+                                                    <div>
+                                                        <p class="text-xs font-bold font-mono">PKG-A92B</p>
+                                                        <p class="text-[10px] text-gray-500">Electronics • ₹45,000</p>
+                                                    </div>
+                                                </div>
+                                                <span
+                                                    class="text-[10px] text-brand-neon bg-brand-neon/10 px-2 py-1 rounded">Locked</span>
+                                            </div>
+                                            <div
+                                                class="flex items-center justify-between p-2 rounded-lg bg-white/5 border border-white/5">
+                                                <div class="flex items-center gap-3">
+                                                    <iconify-icon icon="lucide:box"
+                                                        class="text-uber-muted"></iconify-icon>
+                                                    <div>
+                                                        <p class="text-xs font-bold font-mono">PKG-C41X</p>
+                                                        <p class="text-[10px] text-gray-500">Apparel • ₹12,000</p>
+                                                    </div>
+                                                </div>
+                                                <span
+                                                    class="text-[10px] text-orange-400 bg-orange-400/10 px-2 py-1 rounded">At
+                                                    Risk</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                        </div>
+
+                        <!-- Right Column: Actions & Timeline (1 col) -->
+                        <div class="space-y-6">
+
+                            <!-- Risk Score Widget -->
+                            <div class="bg-uber-panel border border-red-900/50 rounded-xl p-5 relative overflow-hidden">
+                                <div class="absolute top-0 right-0 w-32 h-32 bg-red-500/10 rounded-full blur-3xl"></div>
+                                <h3 class="text-sm font-semibold text-gray-300 text-center mb-4">AI Fraud Risk Score
+                                </h3>
+
+                                <div class="relative w-40 h-40 mx-auto">
+                                    <svg viewBox="0 0 100 100" class="w-full h-full transform -rotate-90">
+                                        <!-- Background circle -->
+                                        <circle cx="50" cy="50" r="40" fill="none" stroke="#1A1A1A" stroke-width="8" />
+                                        <!-- Progress circle (94%) -->
+                                        <circle cx="50" cy="50" r="40" fill="none" stroke="#EF4444" stroke-width="8"
+                                            stroke-dasharray="251.2" stroke-dashoffset="15"
+                                            class="transition-all duration-1000 ease-out" />
+                                    </svg>
+                                    <div class="absolute inset-0 flex flex-col items-center justify-center">
+                                        <span
+                                            class="text-4xl font-black text-red-500 text-neon-red tracking-tighter">94</span>
+                                        <span
+                                            class="text-[10px] text-red-400 font-bold uppercase tracking-widest mt-1">Critical</span>
+                                    </div>
+                                </div>
+
+                                <p class="text-xs text-gray-400 text-center mt-4">
+                                    High probability of cargo theft or unauthorized handoff.
+                                </p>
+                            </div>
+
+                            <!-- Remediation Actions -->
+                            <div class="bg-uber-panel border border-uber-border rounded-xl p-5">
+                                <h3 class="text-sm font-semibold text-gray-300 mb-4">Remediation Actions</h3>
+                                <div class="space-y-2">
+                                    <button
+                                        class="w-full py-2.5 bg-red-500/10 hover:bg-red-500/20 text-red-500 border border-red-500/30 rounded-lg text-sm font-semibold transition-colors flex items-center justify-center gap-2">
+                                        <iconify-icon icon="lucide:user-x"></iconify-icon>
+                                        Suspend Carrier & Lock App
+                                    </button>
+                                    <button
+                                        class="w-full py-2.5 bg-brand-neon hover:bg-[#ff7326] text-black rounded-lg text-sm font-bold transition-colors flex items-center justify-center gap-2">
+                                        <iconify-icon icon="lucide:route"></iconify-icon>
+                                        Dispatch Recovery Agent
+                                    </button>
+                                    <button
+                                        class="w-full py-2.5 bg-white/5 hover:bg-white/10 text-white border border-white/10 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2">
+                                        <iconify-icon icon="lucide:phone-call"></iconify-icon>
+                                        Contact Carrier
+                                    </button>
+                                    <button
+                                        class="w-full py-2.5 bg-transparent hover:bg-white/5 text-uber-muted hover:text-white rounded-lg text-sm font-medium transition-colors">
+                                        Mark as False Positive
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Case Timeline -->
+                            <div class="bg-uber-panel border border-uber-border rounded-xl p-5">
+                                <h3 class="text-sm font-semibold text-gray-300 mb-4 flex items-center gap-2">
+                                    <iconify-icon icon="lucide:history" class="text-uber-muted"></iconify-icon>
+                                    Investigation Log
+                                </h3>
+
+                                <div class="relative pl-4 space-y-6 border-l border-uber-border">
+                                    <!-- Timeline Item -->
+                                    <div class="relative">
+                                        <div
+                                            class="absolute -left-[21px] w-2.5 h-2.5 rounded-full bg-red-500 border-2 border-uber-panel ring-2 ring-red-500/20">
+                                        </div>
+                                        <p class="text-xs text-gray-500 font-mono mb-0.5">14:25 IST (Current)</p>
+                                        <p class="text-sm font-medium text-white">System Flagged as Critical Fraud</p>
+                                        <p class="text-xs text-gray-400 mt-1">Auto-locked highest value parcel.</p>
+                                    </div>
+
+                                    <!-- Timeline Item -->
+                                    <div class="relative">
+                                        <div
+                                            class="absolute -left-[21px] w-2.5 h-2.5 rounded-full bg-orange-400 border-2 border-uber-panel">
+                                        </div>
+                                        <p class="text-xs text-gray-500 font-mono mb-0.5">14:22 IST</p>
+                                        <p class="text-sm font-medium text-gray-300">Multiple OTP Failures</p>
+                                    </div>
+
+                                    <!-- Timeline Item -->
+                                    <div class="relative">
+                                        <div
+                                            class="absolute -left-[21px] w-2.5 h-2.5 rounded-full bg-blue-400 border-2 border-uber-panel">
+                                        </div>
+                                        <p class="text-xs text-gray-500 font-mono mb-0.5">14:15 IST</p>
+                                        <p class="text-sm font-medium text-gray-300">Route Deviation Detected</p>
+                                    </div>
+
+                                    <!-- Timeline Item -->
+                                    <div class="relative">
+                                        <div
+                                            class="absolute -left-[21px] w-2.5 h-2.5 rounded-full bg-gray-600 border-2 border-uber-panel">
+                                        </div>
+                                        <p class="text-xs text-gray-500 font-mono mb-0.5">13:30 IST</p>
+                                        <p class="text-sm font-medium text-gray-400">Relay Handoff Completed</p>
+                                        <p class="text-xs text-gray-500 mt-1">Picked up at Panaji Hub.</p>
+                                    </div>
+                                </div>
+
+                                <!-- Note Input -->
+                                <div class="mt-6 pt-4 border-t border-uber-border">
+                                    <textarea placeholder="Add internal note..."
+                                        class="w-full bg-[#050505] border border-uber-border rounded-lg p-3 text-sm text-white placeholder-uber-muted focus:outline-none focus:border-brand-neon focus:ring-1 focus:ring-brand-neon resize-none h-20"></textarea>
+                                    <div class="flex justify-end mt-2">
+                                        <button
+                                            class="px-3 py-1.5 bg-white/10 hover:bg-white/20 text-white rounded text-xs font-medium transition-colors">
+                                            Save Note
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </main>
+    </div>
+</body>
+
+</html>

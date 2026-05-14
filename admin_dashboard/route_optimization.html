@@ -1,0 +1,776 @@
+Page: KhatKhat Route Optimization
+
+```html
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KhatKhat Admin - Route Optimization</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://code.iconify.design/iconify-icon/1.0.7/iconify-icon.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        uber: {
+                            black: '#000000',
+                            panel: '#0A0A0A',
+                            border: '#1A1A1A',
+                            text: '#FFFFFF',
+                            muted: '#808080',
+                        },
+                        brand: {
+                            neon: '#FF5A00',
+                            dark: '#1a0900',
+                        }
+                    },
+                    animation: {
+                        'flow': 'flow 2s linear infinite',
+                        'flow-slow': 'flow 4s linear infinite',
+                        'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                        'pulse-ring': 'pulse-ring 2s cubic-bezier(0.215, 0.61, 0.355, 1) infinite',
+                    },
+                    keyframes: {
+                        flow: {
+                            '0%': { strokeDashoffset: '100' },
+                            '100%': { strokeDashoffset: '0' },
+                        },
+                        'pulse-ring': {
+                            '0%': { transform: 'scale(0.8)', opacity: '0.8' },
+                            '100%': { transform: 'scale(2.5)', opacity: '0' },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #000;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #222;
+            border-radius: 10px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #444;
+        }
+
+        .glass-panel {
+            background: rgba(10, 10, 10, 0.7);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .text-neon {
+            text-shadow: 0 0 10px rgba(255, 90, 0, 0.5);
+        }
+
+        .border-neon {
+            box-shadow: 0 0 15px rgba(255, 90, 0, 0.2) inset, 0 0 15px rgba(255, 90, 0, 0.2);
+        }
+
+        /* Custom range slider styling */
+        input[type=range] {
+            -webkit-appearance: none;
+            background: transparent;
+        }
+
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            height: 16px;
+            width: 16px;
+            border-radius: 50%;
+            background: #FF5A00;
+            cursor: pointer;
+            margin-top: -6px;
+            box-shadow: 0 0 10px rgba(255, 90, 0, 0.5);
+        }
+
+        input[type=range]::-webkit-slider-runnable-track {
+            width: 100%;
+            height: 4px;
+            cursor: pointer;
+            background: #333;
+            border-radius: 2px;
+        }
+    </style>
+    <style>
+        sd-component {
+            display: block;
+        }
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/petite-vue@0.4.1/dist/petite-vue.iife.js" defer init></script>
+</head>
+
+<body class="bg-uber-black text-uber-text font-sans selection:bg-brand-neon selection:text-white overflow-hidden">
+
+    <div class="flex h-screen w-full">
+
+        <!-- Sidebar Navigation -->
+        <!-- component: SidebarNavigation (cde169a1-c9a9-413f-bd2f-1f1c93606389) -->
+        <div
+            v-scope="{ ...{&quot;activeItem&quot;:&quot;ai&quot;,&quot;fraudCount&quot;:3,&quot;overviewHref&quot;:&quot;#overview&quot;,&quot;relayHref&quot;:&quot;admin.html&quot;,&quot;mapHref&quot;:&quot;#map&quot;,&quot;parcelsHref&quot;:&quot;parcel.html&quot;,&quot;usersHref&quot;:&quot;career_profile.html&quot;,&quot;fraudHref&quot;:&quot;fraud_investigation.html&quot;,&quot;aiHref&quot;:&quot;route_optimization.html&quot;,&quot;revenueHref&quot;:&quot;#revenue&quot;,&quot;adminName&quot;:&quot;Arjun Desk&quot;,&quot;adminRole&quot;:&quot;Super Admin&quot;,&quot;adminAvatar&quot;:&quot;https://i.pravatar.cc/150?u=admin&quot;}, $emit() {} }">
+            <aside class="w-64 flex-shrink-0 border-r border-uber-border bg-uber-black flex flex-col z-20 relative">
+                <!-- Logo Area -->
+                <div class="h-16 flex items-center px-6 border-b border-uber-border">
+                    <div class="flex items-center gap-3">
+                        <div class="w-8 h-8 bg-brand-neon rounded-sm flex items-center justify-center relative">
+                            <div class="absolute inset-0 bg-brand-neon blur-md opacity-50"></div>
+                            <iconify-icon icon="lucide:box" class="text-white relative z-10 text-lg"></iconify-icon>
+                        </div>
+                        <span class="font-bold tracking-tight text-xl">KhatKhat</span>
+                    </div>
+                </div>
+
+                <!-- Nav Links -->
+                <nav class="flex-1 overflow-y-auto py-6 px-3 space-y-1">
+                    <p class="px-3 text-xs font-semibold text-uber-muted uppercase tracking-wider mb-2">Logistics Core
+                    </p>
+
+                    <a :href="overviewHref"
+                        :class="{ 'text-white bg-white/5 border border-white/10': activeItem === 'overview', 'text-uber-muted hover:text-white': activeItem !== 'overview' }"
+                        class="flex items-center gap-3 px-3 py-2.5 text-sm font-medium rounded-lg transition-colors">
+                        <iconify-icon icon="lucide:layout-dashboard" class="text-lg"></iconify-icon>
+                        Overview Analytics
+                    </a>
+
+                    <a :href="relayHref"
+                        :class="{ 'text-white bg-white/5 border border-white/10': activeItem === 'relay', 'text-uber-muted hover:text-white': activeItem !== 'relay' }"
+                        class="flex items-center gap-3 px-3 py-2.5 text-sm font-medium rounded-lg transition-colors relative overflow-hidden">
+                        <div v-if="activeItem === 'relay'"
+                            class="absolute left-0 top-0 bottom-0 w-1 bg-brand-neon shadow-[0_0_8px_#FF5A00]"></div>
+                        <iconify-icon :class="{ 'text-brand-neon': activeItem === 'relay' }" icon="lucide:network"
+                            class="text-lg"></iconify-icon>
+                        Relay Chain Visualizer
+                    </a>
+
+                    <a :href="mapHref"
+                        :class="{ 'text-white bg-white/5 border border-white/10': activeItem === 'map', 'text-uber-muted hover:text-white': activeItem !== 'map' }"
+                        class="flex items-center justify-between px-3 py-2.5 text-sm font-medium rounded-lg transition-colors">
+                        <div class="flex items-center gap-3">
+                            <iconify-icon icon="lucide:map" class="text-lg"></iconify-icon>
+                            Live Operations
+                        </div>
+                        <span class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
+                    </a>
+
+                    <a :href="parcelsHref"
+                        :class="{ 'text-white bg-white/5 border border-white/10': activeItem === 'parcels', 'text-uber-muted hover:text-white': activeItem !== 'parcels' }"
+                        class="flex items-center gap-3 px-3 py-2.5 text-sm font-medium rounded-lg transition-colors">
+                        <iconify-icon icon="lucide:package" class="text-lg"></iconify-icon>
+                        Parcel Management
+                    </a>
+
+                    <div class="pt-4 pb-2">
+                        <p class="px-3 text-xs font-semibold text-uber-muted uppercase tracking-wider mb-2">Network
+                            Health</p>
+                    </div>
+
+                    <a :href="usersHref"
+                        :class="{ 'text-white bg-white/5 border border-white/10': activeItem === 'users', 'text-uber-muted hover:text-white': activeItem !== 'users' }"
+                        class="flex items-center gap-3 px-3 py-2.5 text-sm font-medium rounded-lg transition-colors">
+                        <iconify-icon icon="lucide:users" class="text-lg"></iconify-icon>
+                        Users & Carriers
+                    </a>
+
+                    <a :href="fraudHref"
+                        :class="{ 'text-white bg-white/5 border border-white/10': activeItem === 'fraud', 'text-uber-muted hover:text-white': activeItem !== 'fraud' }"
+                        class="flex items-center justify-between px-3 py-2.5 text-sm font-medium rounded-lg transition-colors">
+                        <div class="flex items-center gap-3">
+                            <iconify-icon icon="lucide:shield-alert" class="text-lg"></iconify-icon>
+                            Trust & Fraud
+                        </div>
+                        <span class="bg-white/10 text-xs px-2 py-0.5 rounded-full text-white">{{ fraudCount }}</span>
+                    </a>
+
+                    <a :href="aiHref"
+                        :class="{ 'text-white bg-white/5 border border-white/10': activeItem === 'ai', 'text-uber-muted hover:text-white': activeItem !== 'ai' }"
+                        class="flex items-center gap-3 px-3 py-2.5 text-sm font-medium rounded-lg transition-colors">
+                        <iconify-icon icon="lucide:cpu" class="text-lg"></iconify-icon>
+                        AI Matching Engine
+                    </a>
+
+                    <a :href="revenueHref"
+                        :class="{ 'text-white bg-white/5 border border-white/10': activeItem === 'revenue', 'text-uber-muted hover:text-white': activeItem !== 'revenue' }"
+                        class="flex items-center gap-3 px-3 py-2.5 text-sm font-medium rounded-lg transition-colors">
+                        <iconify-icon icon="lucide:wallet" class="text-lg"></iconify-icon>
+                        Revenue (Razorpay)
+                    </a>
+                </nav>
+
+                <!-- User Profile Bottom -->
+                <div class="p-4 border-t border-uber-border">
+                    <button @click="$emit('profileClick')"
+                        class="flex items-center gap-3 w-full hover:bg-white/5 p-2 rounded-lg transition-colors text-left">
+                        <div
+                            class="w-8 h-8 rounded-full bg-uber-border flex items-center justify-center overflow-hidden">
+                            <img :src="adminAvatar" :alt="adminName" class="w-full h-full object-cover">
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <p class="text-sm font-medium truncate">{{ adminName }}</p>
+                            <p class="text-xs text-uber-muted truncate">{{ adminRole }}</p>
+                        </div>
+                        <iconify-icon icon="lucide:chevrons-up-down" class="text-uber-muted"></iconify-icon>
+                    </button>
+                </div>
+            </aside>
+        </div>
+        <!-- /component: SidebarNavigation (cde169a1-c9a9-413f-bd2f-1f1c93606389) -->
+
+        <!-- Main Content Area -->
+        <main class="flex-1 flex flex-col h-screen relative bg-uber-black">
+
+            <!-- Background Grid Pattern -->
+            <div class="absolute inset-0 pointer-events-none"
+                style="background-image: radial-gradient(rgba(255,255,255,0.05) 1px, transparent 1px); background-size: 32px 32px; opacity: 0.5;">
+            </div>
+
+            <!-- Top Header -->
+            <!-- component: PageHeader (78fd64bc-351e-40da-bce0-eb45478205db) -->
+            <div
+                v-scope="{ ...{&quot;pageTitle&quot;:&quot;AI Route Optimization&quot;,&quot;regionStatus&quot;:&quot;Goa Network (Live)&quot;,&quot;searchPlaceholder&quot;:&quot;Search route ID, zone, carrier...&quot;,&quot;notificationCount&quot;:1}, $emit() {} }">
+                <header
+                    class="h-16 flex items-center justify-between px-8 border-b border-uber-border bg-uber-black/80 backdrop-blur-md z-30 sticky top-0">
+                    <div class="flex items-center gap-4">
+                        <h1 class="text-lg font-semibold tracking-tight">{{ pageTitle }}</h1>
+                        <div class="h-4 w-px bg-uber-border"></div>
+                        <div
+                            class="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 border border-white/10 text-xs font-medium">
+                            <span class="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></span>
+                            {{ regionStatus }}
+                        </div>
+                    </div>
+
+                    <div class="flex items-center gap-4">
+                        <!-- Global Search -->
+                        <div class="relative hidden md:block">
+                            <iconify-icon icon="lucide:search"
+                                class="absolute left-3 top-1/2 -translate-y-1/2 text-uber-muted text-sm"></iconify-icon>
+                            <input type="text" :placeholder="searchPlaceholder"
+                                @input="$emit('search', $event.target.value)"
+                                class="bg-uber-panel border border-uber-border rounded-lg pl-9 pr-4 py-1.5 text-sm focus:outline-none focus:border-brand-neon focus:ring-1 focus:ring-brand-neon transition-all w-64 placeholder-uber-muted">
+                            <div class="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
+                                <kbd
+                                    class="bg-white/10 border border-white/10 rounded px-1.5 text-[10px] text-uber-muted">⌘</kbd>
+                                <kbd
+                                    class="bg-white/10 border border-white/10 rounded px-1.5 text-[10px] text-uber-muted">K</kbd>
+                            </div>
+                        </div>
+
+                        <button @click="$emit('notificationClick')"
+                            class="relative p-2 text-uber-muted hover:text-white transition-colors">
+                            <iconify-icon icon="lucide:bell" class="text-xl"></iconify-icon>
+                            <span v-if="notificationCount > 0"
+                                class="absolute top-1.5 right-1.5 w-2 h-2 bg-brand-neon rounded-full border-2 border-uber-black"></span>
+                        </button>
+                        <button @click="$emit('settingsClick')"
+                            class="p-2 text-uber-muted hover:text-white transition-colors">
+                            <iconify-icon icon="lucide:settings" class="text-xl"></iconify-icon>
+                        </button>
+                    </div>
+                </header>
+            </div>
+            <!-- /component: PageHeader (78fd64bc-351e-40da-bce0-eb45478205db) -->
+
+            <!-- Scrollable Content -->
+            <div class="flex-1 overflow-y-auto p-8 relative z-10">
+                <div class="max-w-7xl mx-auto space-y-6">
+
+                    <!-- Top Metrics Row -->
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                        <!-- component: MetricCard (559912a6-356c-4fcb-8921-e00edf89bc4c) -->
+                        <div
+                            v-scope="{ ...{&quot;label&quot;:&quot;Routes Optimized&quot;,&quot;value&quot;:&quot;1,420&quot;,&quot;icon&quot;:&quot;lucide:route&quot;,&quot;iconColor&quot;:&quot;text-brand-neon&quot;,&quot;trendValue&quot;:&quot;+8% vs yday&quot;,&quot;trendIcon&quot;:&quot;lucide:trending-up&quot;,&quot;trendClass&quot;:&quot;text-green-500&quot;,&quot;hasGlow&quot;:true,&quot;glowColor&quot;:&quot;#FF5A00&quot;,&quot;glowOpacity&quot;:0.05}, $emit() {} }">
+                            <div class="bg-uber-panel border border-uber-border rounded-xl p-5 relative overflow-hidden group hover:border-white/20 transition-colors"
+                                @click="$emit('click', { label: label })">
+                                <div v-if="hasGlow"
+                                    class="absolute top-0 right-0 w-24 h-24 rounded-full blur-2xl group-hover:opacity-100 transition-opacity"
+                                    :style="{ background: glowColor, opacity: glowOpacity }"></div>
+                                <p class="text-sm text-uber-muted font-medium mb-1 flex items-center gap-2">
+                                    <iconify-icon :icon="icon" :class="iconColor"></iconify-icon>
+                                    {{ label }}
+                                </p>
+                                <div class="flex items-baseline gap-2">
+                                    <h2 class="text-3xl font-bold tracking-tight">{{ value }}</h2>
+                                    <span v-if="trendValue" :class="trendClass"
+                                        class="text-xs font-medium flex items-center">
+                                        <iconify-icon v-if="trendIcon" :icon="trendIcon" class="mr-1"></iconify-icon> {{
+                                        trendValue }}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- /component: MetricCard (559912a6-356c-4fcb-8921-e00edf89bc4c) -->
+
+                        <!-- component: MetricCard (559912a6-356c-4fcb-8921-e00edf89bc4c) -->
+                        <div
+                            v-scope="{ ...{&quot;label&quot;:&quot;Avg Time Saved&quot;,&quot;value&quot;:&quot;14m&quot;,&quot;icon&quot;:&quot;lucide:clock&quot;,&quot;iconColor&quot;:&quot;text-blue-400&quot;,&quot;trendValue&quot;:&quot;Per route&quot;,&quot;trendIcon&quot;:&quot;&quot;,&quot;trendClass&quot;:&quot;text-uber-muted&quot;,&quot;hasGlow&quot;:false,&quot;glowColor&quot;:&quot;#FF5A00&quot;,&quot;glowOpacity&quot;:0.05}, $emit() {} }">
+                            <div class="bg-uber-panel border border-uber-border rounded-xl p-5 relative overflow-hidden group hover:border-white/20 transition-colors"
+                                @click="$emit('click', { label: label })">
+                                <div v-if="hasGlow"
+                                    class="absolute top-0 right-0 w-24 h-24 rounded-full blur-2xl group-hover:opacity-100 transition-opacity"
+                                    :style="{ background: glowColor, opacity: glowOpacity }"></div>
+                                <p class="text-sm text-uber-muted font-medium mb-1 flex items-center gap-2">
+                                    <iconify-icon :icon="icon" :class="iconColor"></iconify-icon>
+                                    {{ label }}
+                                </p>
+                                <div class="flex items-baseline gap-2">
+                                    <h2 class="text-3xl font-bold tracking-tight">{{ value }}</h2>
+                                    <span v-if="trendValue" :class="trendClass"
+                                        class="text-xs font-medium flex items-center">
+                                        <iconify-icon v-if="trendIcon" :icon="trendIcon" class="mr-1"></iconify-icon> {{
+                                        trendValue }}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- /component: MetricCard (559912a6-356c-4fcb-8921-e00edf89bc4c) -->
+
+                        <!-- component: MetricCard (559912a6-356c-4fcb-8921-e00edf89bc4c) -->
+                        <div
+                            v-scope="{ ...{&quot;label&quot;:&quot;Cost Efficiency&quot;,&quot;value&quot;:&quot;+18.4%&quot;,&quot;icon&quot;:&quot;lucide:piggy-bank&quot;,&quot;iconColor&quot;:&quot;text-green-400&quot;,&quot;trendValue&quot;:&quot;Fuel savings&quot;,&quot;trendIcon&quot;:&quot;lucide:check-circle-2&quot;,&quot;trendClass&quot;:&quot;text-green-500&quot;,&quot;hasGlow&quot;:false,&quot;glowColor&quot;:&quot;#FF5A00&quot;,&quot;glowOpacity&quot;:0.05}, $emit() {} }">
+                            <div class="bg-uber-panel border border-uber-border rounded-xl p-5 relative overflow-hidden group hover:border-white/20 transition-colors"
+                                @click="$emit('click', { label: label })">
+                                <div v-if="hasGlow"
+                                    class="absolute top-0 right-0 w-24 h-24 rounded-full blur-2xl group-hover:opacity-100 transition-opacity"
+                                    :style="{ background: glowColor, opacity: glowOpacity }"></div>
+                                <p class="text-sm text-uber-muted font-medium mb-1 flex items-center gap-2">
+                                    <iconify-icon :icon="icon" :class="iconColor"></iconify-icon>
+                                    {{ label }}
+                                </p>
+                                <div class="flex items-baseline gap-2">
+                                    <h2 class="text-3xl font-bold tracking-tight">{{ value }}</h2>
+                                    <span v-if="trendValue" :class="trendClass"
+                                        class="text-xs font-medium flex items-center">
+                                        <iconify-icon v-if="trendIcon" :icon="trendIcon" class="mr-1"></iconify-icon> {{
+                                        trendValue }}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- /component: MetricCard (559912a6-356c-4fcb-8921-e00edf89bc4c) -->
+
+                        <!-- component: MetricCard (559912a6-356c-4fcb-8921-e00edf89bc4c) -->
+                        <div
+                            v-scope="{ ...{&quot;label&quot;:&quot;Active Traffic Delays&quot;,&quot;value&quot;:&quot;8&quot;,&quot;icon&quot;:&quot;lucide:alert-triangle&quot;,&quot;iconColor&quot;:&quot;text-red-500&quot;,&quot;trendValue&quot;:&quot;Re-routing active&quot;,&quot;trendIcon&quot;:&quot;lucide:refresh-cw&quot;,&quot;trendClass&quot;:&quot;text-brand-neon&quot;,&quot;hasGlow&quot;:true,&quot;glowColor&quot;:&quot;#EF4444&quot;,&quot;glowOpacity&quot;:0.05}, $emit() {} }">
+                            <div class="bg-uber-panel border border-uber-border rounded-xl p-5 relative overflow-hidden group hover:border-white/20 transition-colors"
+                                @click="$emit('click', { label: label })">
+                                <div v-if="hasGlow"
+                                    class="absolute top-0 right-0 w-24 h-24 rounded-full blur-2xl group-hover:opacity-100 transition-opacity"
+                                    :style="{ background: glowColor, opacity: glowOpacity }"></div>
+                                <p class="text-sm text-uber-muted font-medium mb-1 flex items-center gap-2">
+                                    <iconify-icon :icon="icon" :class="iconColor"></iconify-icon>
+                                    {{ label }}
+                                </p>
+                                <div class="flex items-baseline gap-2">
+                                    <h2 class="text-3xl font-bold tracking-tight">{{ value }}</h2>
+                                    <span v-if="trendValue" :class="trendClass"
+                                        class="text-xs font-medium flex items-center">
+                                        <iconify-icon v-if="trendIcon" :icon="trendIcon" class="mr-1"></iconify-icon> {{
+                                        trendValue }}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- /component: MetricCard (559912a6-356c-4fcb-8921-e00edf89bc4c) -->
+                    </div>
+
+                    <!-- Main Dashboard Area -->
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 h-[700px]">
+
+                        <!-- Left Column: Controls & Queue -->
+                        <div class="flex flex-col gap-6 h-full">
+
+                            <!-- Optimization Engine Controls -->
+                            <div class="bg-uber-panel border border-uber-border rounded-xl p-5 flex-shrink-0">
+                                <div class="flex justify-between items-center mb-4">
+                                    <h3 class="font-semibold flex items-center gap-2">
+                                        <iconify-icon icon="lucide:sliders-horizontal"
+                                            class="text-uber-muted"></iconify-icon>
+                                        Global Parameters
+                                    </h3>
+                                    <span
+                                        class="px-2 py-0.5 rounded bg-brand-neon/10 text-brand-neon border border-brand-neon/20 text-[10px] font-bold uppercase tracking-wider">Auto-Pilot
+                                        On</span>
+                                </div>
+
+                                <div class="space-y-5">
+                                    <!-- Slider 1 -->
+                                    <div>
+                                        <div class="flex justify-between text-xs mb-2">
+                                            <span class="text-gray-400">Optimization Bias</span>
+                                            <span class="text-white font-medium">Balanced</span>
+                                        </div>
+                                        <div class="relative">
+                                            <input type="range" min="0" max="100" value="50" class="w-full">
+                                            <div class="flex justify-between text-[10px] text-gray-500 mt-1 px-1">
+                                                <span>Time</span>
+                                                <span>Cost</span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Toggles -->
+                                    <div class="flex flex-col gap-3 pt-2">
+                                        <label class="flex items-center justify-between cursor-pointer group">
+                                            <span
+                                                class="text-sm text-gray-300 group-hover:text-white transition-colors">Dynamic
+                                                Traffic Avoidance</span>
+                                            <div class="relative">
+                                                <input type="checkbox" class="sr-only peer" checked>
+                                                <div
+                                                    class="w-9 h-5 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-brand-neon">
+                                                </div>
+                                            </div>
+                                        </label>
+                                        <label class="flex items-center justify-between cursor-pointer group">
+                                            <span
+                                                class="text-sm text-gray-300 group-hover:text-white transition-colors">Batch
+                                                Handoff Sync</span>
+                                            <div class="relative">
+                                                <input type="checkbox" class="sr-only peer" checked>
+                                                <div
+                                                    class="w-9 h-5 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-brand-neon">
+                                                </div>
+                                            </div>
+                                        </label>
+                                    </div>
+
+                                    <button
+                                        class="w-full py-2.5 mt-2 bg-white text-black hover:bg-gray-200 rounded-lg text-sm font-semibold transition-colors flex items-center justify-center gap-2">
+                                        <iconify-icon icon="lucide:zap"></iconify-icon>
+                                        Force Re-optimize All
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Active Route Adjustments List -->
+                            <div
+                                class="bg-uber-panel border border-uber-border rounded-xl flex flex-col flex-1 overflow-hidden">
+                                <div
+                                    class="p-4 border-b border-uber-border flex justify-between items-center bg-black/40">
+                                    <h3 class="font-semibold flex items-center gap-2 text-sm">
+                                        <iconify-icon icon="lucide:git-pull-request"
+                                            class="text-uber-muted"></iconify-icon>
+                                        Pending Adjustments
+                                    </h3>
+                                    <span class="bg-white/10 text-xs px-2 py-0.5 rounded-full text-white">3</span>
+                                </div>
+
+                                <div class="flex-1 overflow-y-auto divide-y divide-uber-border">
+                                    <!-- Route Item 1 (Selected) -->
+                                    <div class="p-4 bg-brand-neon/5 border-l-2 border-brand-neon cursor-pointer">
+                                        <div class="flex justify-between items-start mb-2">
+                                            <div>
+                                                <div class="flex items-center gap-2 mb-1">
+                                                    <span
+                                                        class="text-[10px] font-bold px-1.5 py-0.5 rounded bg-red-500/20 text-red-400 border border-red-500/30">TRAFFIC
+                                                        ALERT</span>
+                                                    <span class="text-xs text-uber-muted">Route #RT-8842</span>
+                                                </div>
+                                                <h4 class="text-sm font-semibold">Vasco → Panaji Hub</h4>
+                                            </div>
+                                            <button class="p-1 text-uber-muted hover:text-white"><iconify-icon
+                                                    icon="lucide:more-vertical"></iconify-icon></button>
+                                        </div>
+                                        <div class="flex items-center gap-4 mt-3 text-xs">
+                                            <div class="flex flex-col">
+                                                <span class="text-uber-muted mb-0.5">Original ETA</span>
+                                                <span class="text-red-400 line-through">45 min</span>
+                                            </div>
+                                            <iconify-icon icon="lucide:arrow-right"
+                                                class="text-uber-muted"></iconify-icon>
+                                            <div class="flex flex-col">
+                                                <span class="text-brand-neon mb-0.5">AI Suggested</span>
+                                                <span class="text-white font-medium">32 min</span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Route Item 2 -->
+                                    <div class="p-4 hover:bg-white/5 transition-colors cursor-pointer group">
+                                        <div class="flex justify-between items-start mb-2">
+                                            <div>
+                                                <div class="flex items-center gap-2 mb-1">
+                                                    <span
+                                                        class="text-[10px] font-bold px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-400 border border-blue-500/30">BATCH
+                                                        SYNC</span>
+                                                    <span class="text-xs text-uber-muted">Route #RT-9102</span>
+                                                </div>
+                                                <h4 class="text-sm font-semibold">Margao local loop</h4>
+                                            </div>
+                                        </div>
+                                        <p class="text-xs text-gray-400 mt-1">Delaying carrier by 4m to sync with
+                                            incoming relay handoff.</p>
+                                    </div>
+
+                                    <!-- Route Item 3 -->
+                                    <div class="p-4 hover:bg-white/5 transition-colors cursor-pointer group">
+                                        <div class="flex justify-between items-start mb-2">
+                                            <div>
+                                                <div class="flex items-center gap-2 mb-1">
+                                                    <span
+                                                        class="text-[10px] font-bold px-1.5 py-0.5 rounded bg-green-500/20 text-green-400 border border-green-500/30">MANUAL
+                                                        EDIT</span>
+                                                    <span class="text-xs text-uber-muted">Route #RT-7731</span>
+                                                </div>
+                                                <h4 class="text-sm font-semibold">Mapusa → Calangute</h4>
+                                            </div>
+                                        </div>
+                                        <p class="text-xs text-gray-400 mt-1">Admin overridden node sequence. Awaiting
+                                            carrier acceptance.</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Right Column: Interactive Map & Analysis -->
+                        <div class="lg:col-span-2 flex flex-col gap-6 h-full">
+
+                            <!-- Map Visualization -->
+                            <div
+                                class="bg-uber-panel border border-uber-border rounded-xl relative overflow-hidden flex-1">
+                                <!-- Map Header Overlay -->
+                                <div
+                                    class="absolute top-0 left-0 right-0 p-4 flex justify-between items-center z-20 pointer-events-none">
+                                    <div
+                                        class="glass-panel px-3 py-2 rounded-lg pointer-events-auto flex items-center gap-3">
+                                        <div class="flex flex-col">
+                                            <span
+                                                class="text-[10px] text-uber-muted uppercase tracking-wider font-semibold">Inspecting</span>
+                                            <span class="text-sm font-bold">Route #RT-8842</span>
+                                        </div>
+                                        <div class="w-px h-6 bg-white/20 mx-2"></div>
+                                        <div class="flex items-center gap-2">
+                                            <div
+                                                class="w-6 h-6 rounded-full bg-gray-800 border border-gray-600 flex items-center justify-center overflow-hidden">
+                                                <iconify-icon icon="lucide:user"
+                                                    class="text-xs text-gray-400"></iconify-icon>
+                                            </div>
+                                            <span class="text-xs font-medium">Carrier: Ramesh K.</span>
+                                        </div>
+                                    </div>
+
+                                    <div class="flex gap-2 pointer-events-auto">
+                                        <button
+                                            class="w-8 h-8 glass-panel rounded flex items-center justify-center text-white hover:bg-white/10 transition-colors">
+                                            <iconify-icon icon="lucide:layers"></iconify-icon>
+                                        </button>
+                                        <button
+                                            class="w-8 h-8 glass-panel rounded flex items-center justify-center text-white hover:bg-white/10 transition-colors">
+                                            <iconify-icon icon="lucide:maximize"></iconify-icon>
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <!-- Interactive SVG Map -->
+                                <div class="w-full h-full relative bg-[#050505] overflow-hidden">
+                                    <!-- Subtle background grid -->
+                                    <div class="absolute inset-0 opacity-[0.03]"
+                                        style="background-image: repeating-linear-gradient(#fff 0 1px, transparent 1px 100%), repeating-linear-gradient(90deg, #fff 0 1px, transparent 1px 100%); background-size: 40px 40px;">
+                                    </div>
+
+                                    <svg width="100%" height="100%" viewBox="0 0 800 500"
+                                        preserveAspectRatio="xMidYMid slice" class="w-full h-full">
+                                        <defs>
+                                            <filter id="glow-orange-map" x="-50%" y="-50%" width="200%" height="200%">
+                                                <feGaussianBlur stdDeviation="4" result="blur" />
+                                                <feMerge>
+                                                    <feMergeNode in="blur" />
+                                                    <feMergeNode in="SourceGraphic" />
+                                                </feMerge>
+                                            </filter>
+                                            <filter id="glow-red-map" x="-50%" y="-50%" width="200%" height="200%">
+                                                <feGaussianBlur stdDeviation="8" result="blur" />
+                                                <feMerge>
+                                                    <feMergeNode in="blur" />
+                                                    <feMergeNode in="SourceGraphic" />
+                                                </feMerge>
+                                            </filter>
+
+                                            <!-- Gradient for alternative route -->
+                                            <linearGradient id="alt-route" x1="0%" y1="0%" x2="100%" y2="0%">
+                                                <stop offset="0%" stop-color="#4b5563" />
+                                                <stop offset="100%" stop-color="#374151" />
+                                            </linearGradient>
+                                        </defs>
+
+                                        <!-- Traffic Hotspot (Red blur) -->
+                                        <circle cx="350" cy="280" r="40" fill="rgba(239, 68, 68, 0.15)"
+                                            filter="url(#glow-red-map)" class="animate-pulse-slow" />
+                                        <circle cx="350" cy="280" r="15" fill="none" stroke="#EF4444" stroke-width="1"
+                                            opacity="0.5" />
+                                        <text x="350" y="275" fill="#EF4444" font-size="8" font-weight="bold"
+                                            text-anchor="middle">NH66 JAM</text>
+                                        <text x="350" y="287" fill="#EF4444" font-size="8" text-anchor="middle">+18m
+                                            delay</text>
+
+                                        <!-- Original Route (Grayed out / crossed) -->
+                                        <path d="M 150 400 Q 250 350 350 280 T 550 150" stroke="#333" stroke-width="4"
+                                            stroke-dasharray="8 8" fill="none" />
+                                        <path d="M 330 290 L 370 270" stroke="#EF4444" stroke-width="2" />
+                                        <path d="M 330 270 L 370 290" stroke="#EF4444" stroke-width="2" />
+
+                                        <!-- AI Suggested Alternative Route (Neon Orange) -->
+                                        <path id="ai-path" d="M 150 400 Q 200 250 350 150 T 550 150" stroke="#FF5A00"
+                                            stroke-width="4" fill="none" filter="url(#glow-orange-map)" opacity="0.6" />
+                                        <!-- Animated dashed line over path -->
+                                        <path d="M 150 400 Q 200 250 350 150 T 550 150" stroke="#FFF" stroke-width="2"
+                                            stroke-dasharray="10 20" fill="none" class="animate-flow" />
+
+                                        <!-- Nodes -->
+                                        <!-- Origin (Vasco) -->
+                                        <g transform="translate(150, 400)">
+                                            <circle r="10" fill="#000" stroke="#FFF" stroke-width="2" />
+                                            <circle r="3" fill="#FFF" />
+                                            <rect x="-25" y="15" width="50" height="18" rx="4" fill="#000"
+                                                stroke="#333" />
+                                            <text x="0" y="27" fill="#FFF" font-size="9" font-weight="bold"
+                                                text-anchor="middle" font-family="Inter">VASCO</text>
+                                            <text x="-30" y="0" fill="#888" font-size="10"
+                                                text-anchor="end">Origin</text>
+                                        </g>
+
+                                        <!-- Destination (Panaji) -->
+                                        <g transform="translate(550, 150)">
+                                            <circle r="16" fill="none" stroke="#FF5A00" stroke-width="1"
+                                                class="animate-pulse-ring origin-center" />
+                                            <circle r="12" fill="#000" stroke="#FF5A00" stroke-width="3"
+                                                filter="url(#glow-orange-map)" />
+                                            <circle r="4" fill="#FFF" />
+                                            <rect x="-30" y="-35" width="60" height="18" rx="4" fill="#FF5A00" />
+                                            <text x="0" y="-23" fill="#000" font-size="9" font-weight="bold"
+                                                text-anchor="middle" font-family="Inter">PANAJI</text>
+                                            <text x="30" y="5" fill="#888" font-size="10"
+                                                text-anchor="start">Destination</text>
+                                        </g>
+
+                                        <!-- Waypoint (Chicalim Bypass) -->
+                                        <g transform="translate(350, 150)">
+                                            <circle r="6" fill="#000" stroke="#FF5A00" stroke-width="2" />
+                                            <text x="0" y="-15" fill="#FF5A00" font-size="9" font-weight="500"
+                                                text-anchor="middle">New Waypoint</text>
+                                            <text x="0" y="20" fill="#888" font-size="8" text-anchor="middle">Chicalim
+                                                Bypass</text>
+                                        </g>
+
+                                        <!-- Moving Carrier Dot on AI Path -->
+                                        <g transform="translate(200, 310)">
+                                            <circle r="15" fill="rgba(59, 130, 246, 0.2)" class="animate-pulse-slow" />
+                                            <circle r="6" fill="#3b82f6" stroke="#000" stroke-width="2" />
+                                            <path d="M -3 -3 L 3 0 L -3 3 Z" fill="#FFF" transform="rotate(-45)" />
+                                        </g>
+                                    </svg>
+                                </div>
+
+                                <!-- Floating Legend/Controls on Map Bottom Right -->
+                                <div class="absolute bottom-4 right-4 flex flex-col gap-2">
+                                    <div class="glass-panel rounded-lg p-3 w-48">
+                                        <h4 class="text-[10px] uppercase font-bold text-gray-400 mb-2">Route Comparison
+                                        </h4>
+                                        <div class="space-y-2">
+                                            <div class="flex items-center justify-between text-xs">
+                                                <div class="flex items-center gap-1.5">
+                                                    <div class="w-3 h-1 bg-brand-neon rounded"></div>
+                                                    <span class="text-white">AI Path</span>
+                                                </div>
+                                                <span class="font-mono">32m</span>
+                                            </div>
+                                            <div class="flex items-center justify-between text-xs opacity-50">
+                                                <div class="flex items-center gap-1.5">
+                                                    <div
+                                                        class="w-3 h-1 bg-gray-500 rounded border border-gray-400 border-dashed">
+                                                    </div>
+                                                    <span class="text-white">Original</span>
+                                                </div>
+                                                <span class="font-mono">45m</span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="flex gap-1 justify-end">
+                                        <button
+                                            class="w-8 h-8 bg-black border border-white/10 rounded flex items-center justify-center text-white hover:bg-white/10">
+                                            <iconify-icon icon="lucide:plus"></iconify-icon>
+                                        </button>
+                                        <button
+                                            class="w-8 h-8 bg-black border border-white/10 rounded flex items-center justify-center text-white hover:bg-white/10">
+                                            <iconify-icon icon="lucide:minus"></iconify-icon>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Bottom Details & Action Panel -->
+                            <div class="bg-uber-panel border border-uber-border rounded-xl p-5 flex-shrink-0">
+                                <div class="flex items-center justify-between">
+                                    <div class="flex-1 flex gap-8">
+                                        <!-- Stat block -->
+                                        <div>
+                                            <p class="text-xs text-uber-muted mb-1">Distance Variance</p>
+                                            <div class="flex items-end gap-2">
+                                                <span class="text-xl font-bold text-white">+3.2 km</span>
+                                                <span class="text-xs text-red-400 mb-1">(Longer)</span>
+                                            </div>
+                                        </div>
+                                        <!-- Stat block -->
+                                        <div>
+                                            <p class="text-xs text-uber-muted mb-1">Time Variance</p>
+                                            <div class="flex items-end gap-2">
+                                                <span class="text-xl font-bold text-brand-neon">-13 min</span>
+                                                <span class="text-xs text-green-400 mb-1">(Faster)</span>
+                                            </div>
+                                        </div>
+                                        <!-- Stat block -->
+                                        <div>
+                                            <p class="text-xs text-uber-muted mb-1">Cost Impact</p>
+                                            <div class="flex items-end gap-2">
+                                                <span class="text-xl font-bold text-white">+$1.40</span>
+                                                <span class="text-xs text-uber-muted mb-1">Est. fuel</span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Action Buttons -->
+                                    <div class="flex gap-3">
+                                        <button
+                                            class="px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-sm font-medium transition-colors">
+                                            Edit Waypoints
+                                        </button>
+                                        <button
+                                            class="px-6 py-2 bg-brand-neon hover:bg-orange-500 text-black rounded-lg text-sm font-bold transition-colors flex items-center gap-2 shadow-[0_0_15px_rgba(255,90,0,0.3)]">
+                                            <iconify-icon icon="lucide:check-circle-2"></iconify-icon>
+                                            Approve Route
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </main>
+    </div>
+
+</body>
+
+</html>
