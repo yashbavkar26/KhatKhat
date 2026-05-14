@@ -3,152 +3,204 @@
 import React from "react";
 import { motion } from "framer-motion";
 
-const LogisticsVisual = () => {
+interface LogisticsVisualProps {
+  isDarkMode?: boolean;
+}
+
+const LogisticsVisual = ({ isDarkMode = true }: LogisticsVisualProps) => {
+  // EVENING / SUNSET THEME
+  const sunsetSky = "bg-gradient-to-b from-[#FF5A00]/20 via-[#451205] to-[#050505]";
+  const lightSky = "bg-gradient-to-b from-orange-100 via-white to-slate-50";
+  
+  const bgColor = isDarkMode ? sunsetSky : lightSky;
+  const buildingColor = isDarkMode ? "#1A1A1A" : "#CBD5E1";
+  const streetLightColor = isDarkMode ? "#333" : "#94A3B8";
+  
   return (
-    <div className="w-full h-[600px] relative overflow-hidden flex items-center justify-center">
-      {/* 1. LAYERED TRACK SYSTEM (Moving LEFT -> RIGHT) */}
-      <div className="absolute inset-0 flex items-center justify-center z-0">
-        <svg width="100%" height="200" viewBox="0 0 800 200" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full opacity-80">
-          {/* Main Magnetic Track Base */}
-          <path d="M-100 100H900" stroke="#111" strokeWidth="80" strokeLinecap="round" />
-          
-          {/* Glowing Rails */}
-          <path d="M-100 70H900" stroke="#FF5A00" strokeWidth="1.5" className="opacity-20 blur-[1px]" />
-          <path d="M-100 130H900" stroke="#FF5A00" strokeWidth="1.5" className="opacity-20 blur-[1px]" />
-          
-          {/* Animated Track Markers (LEFT -> RIGHT) */}
-          <path 
-            d="M-100 100H900" 
-            stroke="#FF5A00" 
-            strokeWidth="3" 
-            strokeLinecap="round"
-            strokeDasharray="20 100"
-            className="opacity-40"
-          >
-            <animate attributeName="stroke-dashoffset" from="0" to="-600" dur="2s" repeatCount="indefinite" />
-          </path>
-
-          {/* Rapid Pulse Lines */}
-          <path 
-            d="M-100 100H900" 
-            stroke="#FF5A00" 
-            strokeWidth="1" 
-            strokeDasharray="1 300"
-            className="opacity-60"
-          >
-            <animate attributeName="stroke-dashoffset" from="0" to="-1200" dur="1s" repeatCount="indefinite" />
-          </path>
-        </svg>
-      </div>
-
-      {/* 2. ATMOSPHERIC LIGHT STREAKS (Moving LEFT -> RIGHT) */}
-      <div className="absolute inset-0 pointer-events-none z-10">
-        {[...Array(8)].map((_, i) => (
+    <div className={`w-full h-[600px] relative overflow-hidden transition-all duration-700 rounded-[4rem] border shadow-[0_0_80px_rgba(255,90,0,0.1)] ${bgColor} ${isDarkMode ? 'border-white/10' : 'border-slate-200'}`}>
+      
+      {/* 1. EVENING CLOUDS (Moving Background) */}
+      <div className="absolute inset-0 z-0 opacity-40 pointer-events-none">
+        {[...Array(6)].map((_, i) => (
           <motion.div
-            key={i}
-            initial={{ x: -200, y: 150 + (i * 40), opacity: 0 }}
-            animate={{ 
-              x: 1000, 
-              opacity: [0, 0.3, 0] 
-            }}
+            key={`cloud-${i}`}
+            initial={{ x: -400, y: 50 + (i * 60) }}
+            animate={{ x: 1000 }}
             transition={{ 
-              duration: 0.5 + Math.random() * 0.5, 
+              duration: 40 + i * 10, 
               repeat: Infinity, 
               ease: "linear",
-              delay: i * 0.3 
+              delay: i * -15 
             }}
-            className="absolute h-[1px] w-48 bg-gradient-to-r from-transparent via-[#FF5A00] to-transparent blur-sm"
+            className={`absolute w-96 h-32 blur-[60px] rounded-full ${isDarkMode ? 'bg-[#FF5A00]/15' : 'bg-orange-200/40'}`}
           />
         ))}
       </div>
 
-      {/* 3. THE FUTURISTIC VEHICLE (Moving RIGHT -> LEFT) */}
-      <div className="absolute inset-0 flex items-center justify-center z-20 pointer-events-none">
+      {/* 2. DISTANT SKYLINE (Sharp & Visible) */}
+      <div className="absolute inset-0 z-5 opacity-40 pointer-events-none">
+        {[...Array(12)].map((_, i) => (
+          <motion.div
+            key={`skyline-${i}`}
+            initial={{ x: -200 }}
+            animate={{ x: 1200 }}
+            transition={{ 
+              duration: 50, 
+              repeat: Infinity, 
+              ease: "linear",
+              delay: i * -8 
+            }}
+            className="absolute bottom-[45%] w-48 h-[400px]"
+            style={{ 
+              backgroundColor: isDarkMode ? "#0A0A0A" : "#E2E8F0",
+              clipPath: 'polygon(0% 100%, 15% 40%, 30% 10%, 70% 10%, 85% 40%, 100% 100%)',
+              left: `${i * 240}px`,
+              filter: 'blur(2px)',
+              borderTop: isDarkMode ? '1px solid rgba(255,90,0,0.1)' : '1px solid white'
+            }}
+          />
+        ))}
+      </div>
+
+      {/* 3. HIGH-VISIBILITY APARTMENT BUILDINGS */}
+      <div className="absolute inset-0 z-10 pointer-events-none">
+        {[...Array(8)].map((_, i) => (
+          <motion.div
+            key={`apt-${i}`}
+            initial={{ x: -400 }}
+            animate={{ x: 1400 }}
+            transition={{ 
+              duration: 30, 
+              repeat: Infinity, 
+              ease: "linear",
+              delay: i * -6 
+            }}
+            className={`absolute bottom-[24%] w-80 h-96 border-x border-t shadow-2xl ${isDarkMode ? 'border-white/10 opacity-90' : 'border-slate-300'}`}
+            style={{ backgroundColor: buildingColor, left: `${i * 450}px` }}
+          >
+            {/* Structured Windows - Brighter in Evening */}
+            <div className="grid grid-cols-6 gap-3 p-8">
+              {[...Array(30)].map((_, j) => (
+                <div 
+                  key={j} 
+                  className={`w-2 h-2 rounded-[1px] transition-all ${Math.random() > 0.4 ? (Math.random() > 0.8 ? 'bg-[#FF5A00] shadow-[0_0_8px_#FF5A00]' : 'bg-orange-300/40 shadow-[0_0_4px_orange]') : (isDarkMode ? 'bg-white/5' : 'bg-slate-400/20')}`} 
+                />
+              ))}
+            </div>
+            {/* Architectural details */}
+            <div className="absolute top-4 left-0 w-full h-[1px] bg-white/10" />
+            <div className="absolute bottom-0 right-4 w-12 h-full bg-black/10" />
+          </motion.div>
+        ))}
+      </div>
+
+      {/* 4. HIGH-VISIBILITY STREET LIGHTS (Cinematic Evening Glow) */}
+      <div className="absolute inset-0 z-15 pointer-events-none">
+        {[...Array(6)].map((_, i) => (
+          <motion.div
+            key={`light-${i}`}
+            initial={{ x: -200 }}
+            animate={{ x: 1200 }}
+            transition={{ duration: 7, repeat: Infinity, ease: "linear", delay: i * -3 }}
+            className={`absolute bottom-[10%] w-[6px] h-[360px] shadow-2xl ${isDarkMode ? 'bg-[#222]' : 'bg-slate-400'}`}
+            style={{ left: `${i * 600}px` }}
+          >
+            {/* Curved Arm (Sharp) */}
+            <svg width="120" height="50" viewBox="0 0 120 50" className="absolute top-0 right-0 overflow-visible">
+              <path d="M6 0C6 0 6 30 70 30H120" stroke={isDarkMode ? "#333" : "#94A3B8"} strokeWidth="6" fill="none" strokeLinecap="round" />
+              <circle cx="120" cy="30" r="10" fill="#FF5A00" className="blur-[4px] opacity-80" />
+              <circle cx="120" cy="30" r="5" fill="white" className="shadow-[0_0_20px_#FF5A00]" />
+              {/* Powerful Glow Cone */}
+              <rect x="80" y="30" width="100" height="400" fill="url(#sunset-cone)" opacity="0.4" transform="rotate(5 120 30)" />
+            </svg>
+          </motion.div>
+        ))}
+        <defs>
+          <linearGradient id="sunset-cone" x1="50%" y1="0%" x2="50%" y2="100%">
+            <stop offset="0%" stopColor="#FF5A00" stopOpacity="0.7" />
+            <stop offset="100%" stopColor="#FF5A00" stopOpacity="0" />
+          </linearGradient>
+        </defs>
+      </div>
+
+      {/* 5. ROAD (Evening Reflections) */}
+      <div className="absolute inset-0 flex items-center justify-center z-20 pointer-events-none translate-y-20">
+        <svg width="100%" height="320" viewBox="0 0 800 320" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full">
+          <path d="M-100 160H900" stroke={isDarkMode ? "#0F0F0F" : "#E2E8F0"} strokeWidth="200" strokeLinecap="round" />
+          
+          {/* Sunset Road Reflection */}
+          <path d="M-100 160H900" stroke="#FF5A00" strokeWidth="202" strokeLinecap="round" className="opacity-15 blur-3xl" />
+          
+          <path d="M-100 260H900" stroke={isDarkMode ? "#1A1A1A" : "#CBD5E1"} strokeWidth="8" strokeLinecap="round" />
+          
+          {/* Animated Markers */}
+          <path 
+            d="M-100 160H900" 
+            stroke="#FF5A00" 
+            strokeWidth="4" 
+            strokeLinecap="round"
+            strokeDasharray="100 200"
+            className="opacity-60 shadow-[0_0_15px_#FF5A00]"
+          >
+            <animate attributeName="stroke-dashoffset" from="0" to="-1200" dur="2s" repeatCount="indefinite" />
+          </path>
+        </svg>
+      </div>
+
+      {/* 6. THE TRUCK (Premium Off-White Metallic) */}
+      <div className="absolute inset-0 flex items-center justify-center z-30 pointer-events-none translate-y-14">
         <motion.div
-          animate={{ 
-            x: [100, -100], // Continuous horizontal travel (Right -> Left)
-            y: [0, -4, 0], // Suspension bounce
-          }}
-          transition={{ 
-            x: { duration: 12, repeat: Infinity, ease: "linear" },
-            y: { duration: 0.4, repeat: Infinity, ease: "easeInOut" }
-          }}
-          className="relative group"
+          animate={{ x: [250, -250], y: [0, -4, 0] }}
+          transition={{ x: { duration: 24, repeat: Infinity, ease: "linear" }, y: { duration: 0.35, repeat: Infinity, ease: "easeInOut" } }}
+          className="relative scale-125 lg:scale-[1.5]"
         >
-          {/* SVG Vehicle Model */}
-          <svg width="400" height="120" viewBox="0 0 400 120" fill="none" xmlns="http://www.w3.org/2000/svg" className="drop-shadow-[0_0_30px_rgba(255,90,0,0.3)]">
-            {/* Main Body Chassis */}
-            <path d="M40 70C40 64.4772 44.4772 60 50 60H350C355.523 60 360 64.4772 360 70V100C360 105.523 355.523 110 350 110H50C44.4772 110 40 105.523 40 100V70Z" fill="#0A0A0A" stroke="#FF5A00" strokeWidth="0.5" />
-            
-            {/* Cargo Compartments */}
-            <rect x="50" y="30" width="80" height="70" rx="4" fill="#0F0F0F" stroke="#333" strokeWidth="1" />
-            <rect x="140" y="30" width="80" height="70" rx="4" fill="#0F0F0F" stroke="#333" strokeWidth="1" />
-            <rect x="230" y="30" width="80" height="70" rx="4" fill="#0F0F0F" stroke="#333" strokeWidth="1" />
-            
-            {/* Cabin / Front End (Facing Left) */}
-            <path d="M50 30H100V100H50C44.4772 100 40 95.5228 40 90V40C40 34.4772 44.4772 30 50 30Z" fill="#050505" stroke="#FF5A00" strokeWidth="0.5" />
-            <rect x="42" y="40" width="10" height="30" rx="2" fill="#FF5A00" fillOpacity="0.1" stroke="#FF5A00" strokeWidth="0.5" />
-            
-            {/* Neon Glow Accents */}
-            <rect x="60" y="95" width="280" height="2" fill="#FF5A00" className="animate-pulse" />
-            <circle cx="350" cy="85" r="3" fill="#FF5A00" className="animate-pulse" />
-            <circle cx="340" cy="85" r="3" fill="#FF5A00" className="animate-pulse" />
+          <svg width="560" height="200" viewBox="0 0 560 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+             <defs>
+               <linearGradient id="truck-grad-silver" x1="0%" y1="0%" x2="100%" y2="0%">
+                 <stop offset="0%" stopColor="#F8FAFC" />
+                 <stop offset="50%" stopColor="#E2E8F0" />
+                 <stop offset="100%" stopColor="#F1F5F9" />
+               </linearGradient>
+               <filter id="neon-glow-evening" x="-25%" y="-25%" width="150%" height="150%">
+                 <feGaussianBlur stdDeviation="6" result="blur" />
+                 <feComposite in="SourceGraphic" in2="blur" operator="over" />
+               </filter>
+             </defs>
 
-            {/* Hubs / Wheels with motion effect */}
-            <circle cx="80" cy="110" r="12" fill="#000" stroke="#333" />
-            <circle cx="80" cy="110" r="4" fill="#FF5A00" />
-            <circle cx="180" cy="110" r="12" fill="#000" stroke="#333" />
-            <circle cx="180" cy="110" r="4" fill="#FF5A00" />
-            <circle cx="280" cy="110" r="12" fill="#000" stroke="#333" />
-            <circle cx="280" cy="110" r="4" fill="#FF5A00" />
+            <ellipse cx="120" cy="165" rx="50" ry="10" fill="black" fillOpacity="0.6" filter="blur(8px)" />
+            <ellipse cx="300" cy="165" rx="50" ry="10" fill="black" fillOpacity="0.6" filter="blur(8px)" />
+            <ellipse cx="480" cy="165" rx="50" ry="10" fill="black" fillOpacity="0.6" filter="blur(8px)" />
 
-            {/* Side Panel HUD Text (SVG) */}
-            <text x="150" y="50" fill="#FF5A00" fontSize="10" fontWeight="bold" opacity="0.6" style={{ fontFamily: 'monospace' }}>KHATKHAT_v4</text>
-            <text x="150" y="65" fill="#FFF" fontSize="8" fontWeight="bold" opacity="0.4" style={{ fontFamily: 'monospace' }}>NEURAL_RELAY_LINK</text>
+            {/* Chassis & Cabin (Both Silver Metallic) */}
+            <path d="M80 70C80 60 85 55 95 55H500C510 55 515 60 515 70V150C515 158 510 160 500 160H95C85 160 80 158 80 150V70Z" fill="url(#truck-grad-silver)" stroke="#FF5A00" strokeWidth="0.5" />
+            <path d="M80 25C80 18 88 15 95 15H200V150H95C85 150 80 145 80 135V25Z" fill="url(#truck-grad-silver)" stroke="#FF5A00" strokeWidth="0.5" />
+            
+            <rect x="200" y="25" width="310" height="125" rx="8" fill="#FFFFFF" stroke="#E2E8F0" strokeWidth="2" />
+            
+            <text x="240" y="95" fill="#FF5A00" fontSize="48" fontWeight="950" filter="url(#neon-glow-evening)">KhatKhat</text>
+            <text x="240" y="120" fill="#64748B" fontSize="11" fontWeight="bold" opacity="0.6">NEXTGEN_GRID_OS</text>
+
+            <path d="M85 25H140V95H85V25Z" fill="#000" fillOpacity="0.9" />
+            
+            <rect x="78" y="105" width="5" height="35" fill="#FFF" filter="url(#neon-glow-evening)" />
+            <rect x="78" y="105" width="2" height="35" fill="#FF5A00" filter="url(#neon-glow-evening)" />
+
+            <circle cx="120" cy="162" r="24" fill="#111" stroke="#333" strokeWidth="3" />
+            <circle cx="120" cy="162" r="8" fill="#FF5A00" filter="url(#neon-glow-evening)" />
+            
+            <circle cx="300" cy="162" r="24" fill="#111" stroke="#333" strokeWidth="3" />
+            <circle cx="300" cy="162" r="8" fill="#FF5A00" filter="url(#neon-glow-evening)" />
+            
+            <circle cx="480" cy="162" r="24" fill="#111" stroke="#333" strokeWidth="3" />
+            <circle cx="480" cy="162" r="8" fill="#FF5A00" filter="url(#neon-glow-evening)" />
+
+            <rect x="95" y="156" width="410" height="4" fill="#FF5A00" filter="url(#neon-glow-evening)" className="animate-pulse" />
           </svg>
-
-          {/* Particle Trail */}
-          <div className="absolute top-[100px] left-[350px] flex gap-2">
-            {[...Array(5)].map((_, i) => (
-              <motion.div
-                key={i}
-                animate={{ 
-                  x: [0, 100], 
-                  y: [0, -20],
-                  opacity: [0.8, 0],
-                  scale: [1, 0.5]
-                }}
-                transition={{ 
-                  duration: 1, 
-                  repeat: Infinity, 
-                  delay: i * 0.2,
-                  ease: "easeOut"
-                }}
-                className="w-1 h-1 bg-[#FF5A00] rounded-full blur-[1px]"
-              />
-            ))}
-          </div>
         </motion.div>
       </div>
 
-      {/* 4. OVERLAY VIGNETTE (Static) */}
-      <div className="absolute inset-0 pointer-events-none z-30 bg-[radial-gradient(circle_at_center,transparent_40%,rgba(0,0,0,0.6)_100%)]" />
-      
-      {/* HUD ELEMENTS (Minimal) */}
-      <div className="absolute bottom-12 left-1/2 -translate-x-1/2 z-40 flex items-center gap-6 pointer-events-none">
-        <div className="flex flex-col items-center">
-          <div className="text-[10px] font-bold text-[#FF5A00] uppercase tracking-widest mb-1 opacity-60">Status</div>
-          <div className="text-xs font-bold text-white uppercase tracking-widest flex items-center gap-2">
-            <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-ping" />
-            Optimized
-          </div>
-        </div>
-        <div className="h-10 w-[1px] bg-white/10" />
-        <div className="flex flex-col items-center">
-          <div className="text-[10px] font-bold text-[#FF5A00] uppercase tracking-widest mb-1 opacity-60">Velocity</div>
-          <div className="text-xs font-bold text-white uppercase tracking-widest">184.2 km/h</div>
-        </div>
-      </div>
+      {/* Atmospheric Overlays */}
+      <div className={`absolute inset-0 pointer-events-none z-[60] ${isDarkMode ? 'bg-[radial-gradient(circle_at_center,transparent_30%,rgba(0,0,0,0.6)_100%)]' : 'bg-transparent'}`} />
     </div>
   );
 };
