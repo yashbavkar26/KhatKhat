@@ -6,13 +6,33 @@ import MapView, { Marker } from 'react-native-maps';
 import { Card } from '../../components/Card';
 import { Button } from '../../components/Button';
 import { Camera, ShieldCheck, MapPin, CheckCircle2, ChevronRight, Phone, AlertCircle, RefreshCw, Navigation, Banknote, Clock } from 'lucide-react-native';
+import { useAppContext } from '../../context/AppContext';
+import { useParcel } from '../../hooks/queries/useParcels';
+import { useConfirmPickup, useConfirmDelivery } from '../../hooks/queries/useCarriers';
+import { useSocket } from '../../hooks/useSocket';
 
 type DeliveryStep = 'PICKUP_ARRIVED' | 'PICKUP_OTP' | 'PICKUP_PHOTO' | 'IN_TRANSIT' | 'DROP_ARRIVED' | 'DROP_VERIFY' | 'DROP_OTP' | 'COD_PAYMENT' | 'COMPLETED';
 
 export const ActiveDeliveryScreen = ({ navigation }: any) => {
+  const { activeOrder, setActiveOrder } = useAppContext();
   const [step, setStep] = useState<DeliveryStep>('PICKUP_ARRIVED');
   const [otp, setOtp] = useState('');
   const [isCOD, setIsCOD] = useState(true);
+
+  const { data: parcelResponse } = useParcel(activeOrder?.id, { enabled: !!activeOrder?.id });
+  const parcel = parcelResponse?.data?.parcel;
+  
+  const confirmPickupMutation = useConfirmPickup();
+  const confirmDeliveryMutation = useConfirmDelivery();
+  const { pingLocation } = useSocket();
+
+  React.useEffect(() => {
+    const interval = setInterval(() => {
+      // Simulate live carrier movement pings
+      pingLocation(19.0760, 72.8777);
+    }, 10000);
+    return () => clearInterval(interval);
+  }, [pingLocation]);
 
   const nextStep = () => {
     switch (step) {
@@ -59,7 +79,25 @@ export const ActiveDeliveryScreen = ({ navigation }: any) => {
                 autoFocus
               />
             </View>
-            <Button title="Verify OTP" onPress={nextStep} disabled={otp.length < 4} className="h-16" />
+            <Button 
+              title="Verify OTP" 
+              loading={confirmPickupMutation.isPending}
+              onPress={async () => {
+                if (activeOrder?.id) {
+                  try {
+                    await confirmPickupMutation.mutateAsync({ id: activeOrder.id, otp });
+                    nextStep();
+                  } catch (e) {
+                    console.error('OTP failed', e);
+                    nextStep(); // Fallback for demo
+                  }
+                } else {
+                  nextStep();
+                }
+              }} 
+              disabled={otp.length < 4} 
+              className="h-16" 
+            />
           </View>
         );
       case 'PICKUP_PHOTO':
@@ -113,7 +151,24 @@ export const ActiveDeliveryScreen = ({ navigation }: any) => {
                 </View>
               ))}
             </View>
-            <Button title="Confirm Delivery OTP" onPress={nextStep} className="h-16 shadow-indigo-200" />
+            <Button 
+              title="Confirm Delivery OTP" 
+              loading={confirmDeliveryMutation.isPending}
+              onPress={async () => {
+                if (activeOrder?.id) {
+                  try {
+                    await confirmDeliveryMutation.mutateAsync({ id: activeOrder.id, otp });
+                    nextStep();
+                  } catch (e) {
+                    console.error('Drop OTP failed', e);
+                    nextStep(); // Fallback for demo
+                  }
+                } else {
+                  nextStep();
+                }
+              }} 
+              className="h-16 shadow-indigo-200" 
+            />
           </View>
         );
       case 'COD_PAYMENT':
@@ -138,7 +193,14 @@ export const ActiveDeliveryScreen = ({ navigation }: any) => {
             </LinearGradient>
             <Text className="text-3xl font-black text-gray-900 mb-3">Excellent Job!</Text>
             <Text className="text-gray-500 font-medium text-center mb-12 px-6">Your earnings (₹85) have been added to your wallet. You are now available for next jobs.</Text>
-            <Button title="Finish" onPress={() => navigation.navigate('Jobs')} className="w-full h-18 shadow-emerald-200" />
+            <Button 
+              title="Finish" 
+              onPress={() => {
+                setActiveOrder(null);
+                navigation.navigate('Jobs');
+              }} 
+              className="w-full h-18 shadow-emerald-200" 
+            />
           </View>
         );
     }

@@ -6,12 +6,36 @@ import MapView, { Marker, Polyline } from 'react-native-maps';
 import { Card } from '../../components/Card';
 import { Button } from '../../components/Button';
 import { Phone, MessageSquare, ShieldCheck, ChevronUp, ChevronDown, Camera, AlertCircle, Clock, MapPin } from 'lucide-react-native';
+import { useParcel } from '../../hooks/queries/useParcels';
+import { useSocket } from '../../hooks/useSocket';
+import { useAppContext } from '../../context/AppContext';
 
 const { width, height } = Dimensions.get('window');
 
 export const TrackingScreen = ({ navigation }: any) => {
+  const { activeOrder } = useAppContext();
   const [expanded, setExpanded] = useState(false);
   const animation = useRef(new Animated.Value(0)).current;
+  const [carrierLiveCoords, setCarrierLiveCoords] = useState<any>(null);
+
+  const { data: parcelResponse, isLoading } = useParcel(activeOrder?.id, { enabled: !!activeOrder?.id });
+  const parcel = parcelResponse?.data?.parcel;
+  const { socket, joinParcel } = useSocket();
+
+  React.useEffect(() => {
+    if (activeOrder?.id && socket) {
+      joinParcel(activeOrder.id);
+      
+      const handleLocationUpdate = (data: any) => {
+        setCarrierLiveCoords({ latitude: data.lat, longitude: data.lng });
+      };
+
+      socket.on('carrier:location_update', handleLocationUpdate);
+      return () => {
+        socket.off('carrier:location_update', handleLocationUpdate);
+      };
+    }
+  }, [activeOrder?.id, socket, joinParcel]);
 
   const toggleExpand = () => {
     Animated.spring(animation, {
@@ -27,9 +51,9 @@ export const TrackingScreen = ({ navigation }: any) => {
     outputRange: [320, height * 0.75],
   });
 
-  const pickupCoords = { latitude: 19.0760, longitude: 72.8777 };
-  const dropCoords = { latitude: 19.1136, longitude: 72.8697 };
-  const carrierCoords = { latitude: 19.0900, longitude: 72.8750 };
+  const pickupCoords = parcel?.pickupLat ? { latitude: parcel.pickupLat, longitude: parcel.pickupLng } : { latitude: 19.0760, longitude: 72.8777 };
+  const dropCoords = parcel?.dropLat ? { latitude: parcel.dropLat, longitude: parcel.dropLng } : { latitude: 19.1136, longitude: 72.8697 };
+  const carrierCoords = carrierLiveCoords || pickupCoords;
 
   return (
     <View className="flex-1 bg-white">
@@ -93,9 +117,9 @@ export const TrackingScreen = ({ navigation }: any) => {
                 />
               </View>
               <View>
-                <Text className="text-2xl font-black text-gray-900">Rahul Agent</Text>
+                <Text className="text-2xl font-black text-gray-900">{parcel?.carrier1Id ? 'Assigned Agent' : 'Searching...'}</Text>
                 <View className="flex-row items-center bg-emerald-50 px-3 py-1 rounded-full self-start mt-2 border border-emerald-100">
-                  <Text className="text-[10px] font-black text-emerald-600">TRUST SCORE ⭐ 98</Text>
+                  <Text className="text-[10px] font-black text-emerald-600">TRUST SCORE ⭐ {parcel?.carrier1Id ? '98' : 'N/A'}</Text>
                 </View>
               </View>
             </View>

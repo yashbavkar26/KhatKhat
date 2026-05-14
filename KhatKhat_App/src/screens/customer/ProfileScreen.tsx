@@ -5,9 +5,12 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Card } from '../../components/Card';
 import { User, ShieldCheck, Award, MapPin, LogOut, ChevronRight, Phone } from 'lucide-react-native';
 import { useAppContext } from '../../context/AppContext';
+import { useUser } from '../../hooks/queries/useAuth';
 
 export const ProfileScreen = ({ navigation }: any) => {
   const { setIsLoggedIn } = useAppContext();
+  const { data: userResponse, isLoading } = useUser();
+  const user = userResponse?.data?.user;
 
   return (
     <View className="flex-1">
@@ -21,16 +24,18 @@ export const ProfileScreen = ({ navigation }: any) => {
                     className="w-full h-full rounded-[44px]"
                   />
                </View>
-               <Text className="text-4xl font-black text-gray-900">Amey K.</Text>
+               <Text className="text-4xl font-black text-gray-900">{user?.name || 'Loading...'}</Text>
                <View className="flex-row items-center mt-2 bg-indigo-50 px-4 py-1.5 rounded-full border border-indigo-100">
                   <ShieldCheck size={16} color="#6366f1" />
-                  <Text className="ml-2 text-primary font-black text-[10px] uppercase tracking-widest">VERIFIED USER</Text>
+                  <Text className="ml-2 text-primary font-black text-[10px] uppercase tracking-widest">
+                    {user?.verified ? 'VERIFIED USER' : 'UNVERIFIED'}
+                  </Text>
                </View>
             </View>
 
             <View className="flex-row space-x-4 mb-10">
                <Card className="flex-1 p-8 items-center bg-white border-2 border-indigo-50">
-                  <Text className="text-3xl font-black text-gray-900">92</Text>
+                  <Text className="text-3xl font-black text-gray-900">{user?.trustScore || '0'}</Text>
                   <Text className="text-[10px] font-black text-gray-400 uppercase tracking-widest mt-1">TRUST SCORE</Text>
                </Card>
                <Card className="flex-1 p-8 items-center bg-white border-2 border-indigo-50">

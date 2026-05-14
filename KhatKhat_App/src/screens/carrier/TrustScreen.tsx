@@ -4,8 +4,12 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Card } from '../../components/Card';
 import { ShieldCheck, Star, Award, Zap, TrendingUp, Heart } from 'lucide-react-native';
+import { useUser } from '../../hooks/queries/useAuth';
 
 export const TrustScreen = () => {
+  const { data: userResponse } = useUser();
+  const user = userResponse?.data?.user;
+
   return (
     <View className="flex-1">
       <LinearGradient colors={['#f8f9ff', '#ffffff']} className="flex-1">
@@ -21,7 +25,7 @@ export const TrustScreen = () => {
                   <View className="w-32 h-32 bg-indigo-50 rounded-full items-center justify-center mb-6 border-8 border-white shadow-lg">
                      <ShieldCheck size={64} color="#6366f1" />
                   </View>
-                  <Text className="text-5xl font-black text-gray-900 mb-2">98</Text>
+                  <Text className="text-5xl font-black text-gray-900 mb-2">{user?.trustScore || '0'}</Text>
                   <Text className="text-primary font-black text-[10px] uppercase tracking-[4px]">TRUST SCORE</Text>
                   
                   <View className="flex-row mt-8 bg-amber-50 px-6 py-2.5 rounded-full border border-amber-100">

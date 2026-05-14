@@ -5,10 +5,23 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Card } from '../../components/Card';
 import { User, LogOut, MapPin, Phone, ShieldCheck, ChevronRight } from 'lucide-react-native';
 import { useAppContext } from '../../context/AppContext';
+import { useUser, useToggleCarrierActive } from '../../hooks/queries/useAuth';
 
 export const CarrierProfileScreen = ({ navigation }: any) => {
   const { setIsLoggedIn } = useAppContext();
-  const [isOnline, setIsOnline] = useState(true);
+  const { data: userResponse } = useUser();
+  const toggleActiveMutation = useToggleCarrierActive();
+  const user = userResponse?.data?.user;
+  const isOnline = user?.isCarrierActive || false;
+
+  const handleToggleOnline = async (value: boolean) => {
+    try {
+      // Mocking current location for demo
+      await toggleActiveMutation.mutateAsync({ isActive: value, lat: 19.0760, lng: 72.8777 });
+    } catch (error) {
+      console.error('Failed to toggle active status', error);
+    }
+  };
 
   return (
     <View className="flex-1">
@@ -23,7 +36,7 @@ export const CarrierProfileScreen = ({ navigation }: any) => {
                  />
                  <View className={`absolute bottom-1 right-1 w-8 h-8 rounded-full border-4 border-white ${isOnline ? 'bg-emerald-500' : 'bg-gray-300'}`} />
               </View>
-              <Text className="text-3xl font-black text-gray-900">Rahul Agent</Text>
+              <Text className="text-3xl font-black text-gray-900">{user?.name || 'Loading...'}</Text>
               <Text className="text-gray-400 font-bold uppercase tracking-widest text-[10px] mt-1">Professional Delivery Partner</Text>
             </View>
 
@@ -35,7 +48,8 @@ export const CarrierProfileScreen = ({ navigation }: any) => {
                   </View>
                   <Switch 
                     value={isOnline} 
-                    onValueChange={setIsOnline}
+                    onValueChange={handleToggleOnline}
+                    disabled={toggleActiveMutation.isPending}
                     trackColor={{ false: '#e5e7eb', true: '#6366f1' }}
                     thumbColor="white"
                   />

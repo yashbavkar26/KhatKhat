@@ -4,47 +4,15 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Card } from '../../components/Card';
 import { Button } from '../../components/Button';
-import { MapPin, TrendingUp, Clock, Zap, ShieldCheck, ChevronRight, AlertCircle, Moon, Sun } from 'lucide-react-native';
+import { MapPin, TrendingUp, Clock, Zap, ShieldCheck, ChevronRight, AlertCircle, Moon, Sun, Loader2 } from 'lucide-react-native';
 import { useAppContext } from '../../context/AppContext';
-
-const JOBS = [
-  {
-    id: '1',
-    type: 'Medical Supplies',
-    from: 'Andheri West',
-    to: 'Bandra East',
-    earnings: '85',
-    match: '98',
-    detour: '2',
-    urgency: 'Urgent',
-    urgencyColor: 'text-rose-500 bg-rose-50'
-  },
-  {
-    id: '2',
-    type: 'Laptop Charger',
-    from: 'Juhu',
-    to: 'Santacruz',
-    earnings: '55',
-    match: '85',
-    detour: '5',
-    urgency: 'Normal',
-    urgencyColor: 'text-indigo-500 bg-indigo-50'
-  },
-  {
-    id: '3',
-    type: 'Lunch Box',
-    from: 'Vile Parle',
-    to: 'BKC',
-    earnings: '70',
-    match: '92',
-    detour: '3',
-    urgency: 'Fast',
-    urgencyColor: 'text-amber-500 bg-amber-50'
-  }
-];
+import { useAvailableJobs, useAcceptParcel } from '../../hooks/queries/useCarriers';
 
 export const JobsScreen = ({ navigation }: any) => {
-  const { theme, setTheme, activeOrder } = useAppContext();
+  const { theme, setTheme, activeOrder, setActiveOrder } = useAppContext();
+  const { data: jobsResponse, isLoading } = useAvailableJobs({ refetchInterval: 10000 });
+  const acceptMutation = useAcceptParcel();
+  const jobs = jobsResponse?.data?.jobs || [];
   return (
     <View className="flex-1">
       <LinearGradient colors={theme === 'dark' ? ['#0f172a', '#1e293b'] : ['#f8f9ff', '#ffffff']} className="flex-1">
@@ -70,7 +38,7 @@ export const JobsScreen = ({ navigation }: any) => {
 
             <View className="flex-row space-x-3 mb-10 overflow-hidden">
                <View className="bg-primary px-5 py-3 rounded-full shadow-lg shadow-indigo-100">
-                  <Text className="text-white font-bold">New Jobs (12)</Text>
+                  <Text className="text-white font-bold">New Jobs ({jobs.length})</Text>
                </View>
                <View className="bg-white px-5 py-3 rounded-full border border-indigo-50">
                   <Text className="text-gray-400 font-bold">Recommended</Text>
@@ -113,73 +81,100 @@ export const JobsScreen = ({ navigation }: any) => {
               </Card>
             )}
 
-            {JOBS.map((job) => (
-              <Card key={job.id} className="mb-8 p-6 overflow-hidden">
-                <View className="flex-row justify-between items-start mb-6">
-                  <View>
-                    <View className={`px-3 py-1 rounded-full self-start mb-3 ${job.urgencyColor}`}>
-                      <Text className="text-[10px] font-black uppercase tracking-tighter">{job.urgency} DELIVERY</Text>
+            {isLoading ? (
+              <View className="flex-1 justify-center items-center py-20">
+                <Text className="text-gray-400 font-bold">Finding jobs nearby...</Text>
+              </View>
+            ) : jobs.length === 0 ? (
+              <View className="flex-1 justify-center items-center py-20">
+                <Text className="text-gray-400 font-bold">No jobs right now. You are active.</Text>
+              </View>
+            ) : (
+              jobs.map((job: any) => (
+                <Card key={job.parcelId || job.id} className="mb-8 p-6 overflow-hidden">
+                  <View className="flex-row justify-between items-start mb-6">
+                    <View>
+                      <View className={`px-3 py-1 rounded-full self-start mb-3 ${job.urgency === 'CRITICAL' ? 'text-rose-500 bg-rose-50' : 'text-indigo-500 bg-indigo-50'}`}>
+                        <Text className="text-[10px] font-black uppercase tracking-tighter">{job.urgency || 'Normal'} DELIVERY</Text>
+                      </View>
+                      <Text className="text-2xl font-black text-gray-900">{job.itemCategory || job.type || 'Package'}</Text>
                     </View>
-                    <Text className="text-2xl font-black text-gray-900">{job.type}</Text>
+                    <View className="items-end">
+                      <Text className="text-3xl font-black text-primary">₹{job.carrierEarning || job.price || job.earnings || 50}</Text>
+                      <Text className="text-[10px] font-bold text-gray-400 uppercase">EARNINGS</Text>
+                    </View>
                   </View>
-                  <View className="items-end">
-                    <Text className="text-3xl font-black text-primary">₹{job.earnings}</Text>
-                    <Text className="text-[10px] font-bold text-gray-400 uppercase">EARNINGS</Text>
-                  </View>
-                </View>
 
-                <View className="bg-gray-50 rounded-[24px] p-5 mb-8 border border-gray-100">
-                  <View className="flex-row items-center mb-5">
-                    <View className="w-2 h-2 bg-primary rounded-full mr-4" />
-                    <Text className="text-sm font-bold text-gray-500 uppercase tracking-tighter mr-3">FROM</Text>
-                    <Text className="text-base font-black text-gray-900">{job.from}</Text>
+                  <View className="bg-gray-50 rounded-[24px] p-5 mb-8 border border-gray-100">
+                    <View className="flex-row items-center mb-5">
+                      <View className="w-2 h-2 bg-primary rounded-full mr-4" />
+                      <Text className="text-sm font-bold text-gray-500 uppercase tracking-tighter mr-3">FROM</Text>
+                      <Text className="text-base font-black text-gray-900" numberOfLines={1}>{job.pickupAddress || job.from}</Text>
+                    </View>
+                    <View className="w-0.5 h-6 bg-gray-200 ml-0.75 mb-1" />
+                    <View className="flex-row items-center">
+                      <View className="w-2 h-2 bg-emerald-500 rounded-full mr-4" />
+                      <Text className="text-sm font-bold text-gray-500 uppercase tracking-tighter mr-3">ETA</Text>
+                      <Text className="text-base font-black text-gray-900 ml-4">{job.estimatedMinutes ? `${job.estimatedMinutes} mins` : '15 mins'}</Text>
+                    </View>
                   </View>
-                  <View className="w-0.5 h-6 bg-gray-200 ml-0.75 mb-1" />
-                  <View className="flex-row items-center">
-                    <View className="w-2 h-2 bg-emerald-500 rounded-full mr-4" />
-                    <Text className="text-sm font-bold text-gray-500 uppercase tracking-tighter mr-3">TO</Text>
-                    <Text className="text-base font-black text-gray-900 ml-4">{job.to}</Text>
-                  </View>
-                </View>
 
-                <View className="flex-row justify-between mb-8 px-2">
-                  <View className="items-center">
-                    <View className="w-12 h-12 bg-indigo-50 rounded-full items-center justify-center mb-2">
-                       <ShieldCheck size={20} color="#6366f1" />
+                  <View className="flex-row justify-between mb-8 px-2">
+                    <View className="items-center">
+                      <View className="w-12 h-12 bg-indigo-50 rounded-full items-center justify-center mb-2">
+                         <ShieldCheck size={20} color="#6366f1" />
+                      </View>
+                      <Text className="text-primary font-black text-xs">98%</Text>
+                      <Text className="text-[10px] font-bold text-gray-400 uppercase">MATCH</Text>
                     </View>
-                    <Text className="text-primary font-black text-xs">{job.match}%</Text>
-                    <Text className="text-[10px] font-bold text-gray-400 uppercase">MATCH</Text>
-                  </View>
-                  <View className="items-center">
-                    <View className="w-12 h-12 bg-amber-50 rounded-full items-center justify-center mb-2">
-                       <Clock size={20} color="#f59e0b" />
+                    <View className="items-center">
+                      <View className="w-12 h-12 bg-amber-50 rounded-full items-center justify-center mb-2">
+                         <MapPin size={20} color="#f59e0b" />
+                      </View>
+                      <Text className="text-amber-500 font-black text-xs">{job.distanceKm || 2} km</Text>
+                      <Text className="text-[10px] font-bold text-gray-400 uppercase">DISTANCE</Text>
                     </View>
-                    <Text className="text-amber-500 font-black text-xs">+{job.detour}m</Text>
-                    <Text className="text-[10px] font-bold text-gray-400 uppercase">DETOUR</Text>
-                  </View>
-                  <View className="items-center">
-                    <View className="w-12 h-12 bg-rose-50 rounded-full items-center justify-center mb-2">
-                       <AlertCircle size={20} color="#ef4444" />
+                    <View className="items-center">
+                      <View className="w-12 h-12 bg-rose-50 rounded-full items-center justify-center mb-2">
+                         <AlertCircle size={20} color="#ef4444" />
+                      </View>
+                      <Text className="text-rose-500 font-black text-xs">HIGH</Text>
+                      <Text className="text-[10px] font-bold text-gray-400 uppercase">TRUST</Text>
                     </View>
-                    <Text className="text-rose-500 font-black text-xs">HIGH</Text>
-                    <Text className="text-[10px] font-bold text-gray-400 uppercase">TRUST</Text>
                   </View>
-                </View>
 
-                <View className="flex-row space-x-3">
-                   <TouchableOpacity className="flex-1 bg-gray-50 p-5 rounded-[24px] items-center border border-gray-100">
-                      <Text className="text-gray-400 font-black uppercase text-xs">Ignore</Text>
-                   </TouchableOpacity>
-                   <TouchableOpacity 
-                     onPress={() => navigation.navigate('AgentProfile')}
-                     className="flex-[2] bg-primary p-5 rounded-[24px] items-center shadow-lg shadow-indigo-100 overflow-hidden"
-                   >
-                     <LinearGradient colors={['#6366f1', '#4f46e5']} className="absolute inset-0" />
-                     <Text className="text-white font-black uppercase text-xs">Accept Job</Text>
-                   </TouchableOpacity>
-                </View>
-              </Card>
-            ))}
+                  <View className="flex-row space-x-3">
+                     <TouchableOpacity className="flex-1 bg-gray-50 p-5 rounded-[24px] items-center border border-gray-100">
+                        <Text className="text-gray-400 font-black uppercase text-xs">Ignore</Text>
+                     </TouchableOpacity>
+                     <TouchableOpacity 
+                       onPress={async () => {
+                         try {
+                           await acceptMutation.mutateAsync(job.parcelId || job.id);
+                           setActiveOrder({
+                             id: job.parcelId || job.id,
+                             type: job.itemCategory || job.type,
+                             from: job.pickupAddress || job.from,
+                             to: job.dropAddress || job.to,
+                             earnings: job.carrierEarning?.toString() || job.earnings?.toString() || '50',
+                           });
+                           navigation.navigate('AgentProfile'); // Navigate to ActiveDelivery
+                         } catch (error) {
+                           console.error('Accept job error', error);
+                         }
+                       }}
+                       disabled={acceptMutation.isPending}
+                       className={`flex-[2] bg-primary p-5 rounded-[24px] items-center shadow-lg shadow-indigo-100 overflow-hidden ${acceptMutation.isPending ? 'opacity-50' : ''}`}
+                     >
+                       <LinearGradient colors={['#6366f1', '#4f46e5']} className="absolute inset-0" />
+                       <Text className="text-white font-black uppercase text-xs">
+                         {acceptMutation.isPending ? 'Accepting...' : 'Accept Job'}
+                       </Text>
+                     </TouchableOpacity>
+                  </View>
+                </Card>
+              ))
+            )}
             <View className="h-20" />
           </ScrollView>
         </SafeAreaView>

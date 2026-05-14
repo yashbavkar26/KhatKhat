@@ -4,8 +4,12 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Card } from '../../components/Card';
 import { TrendingUp, DollarSign, Calendar, ChevronRight, CheckCircle2 } from 'lucide-react-native';
+import { useCarrierHistory } from '../../hooks/queries/useCarriers';
 
 export const EarningsScreen = () => {
+  const { data: historyResponse, isLoading } = useCarrierHistory();
+  const history = historyResponse?.data?.parcels || [];
+
   return (
     <View className="flex-1">
       <LinearGradient colors={['#f8f9ff', '#ffffff']} className="flex-1">
@@ -40,25 +44,29 @@ export const EarningsScreen = () => {
             </View>
 
             <Text className="text-lg font-black text-gray-900 mb-6 uppercase tracking-tight ml-1">Recent Transactions</Text>
-            {[
-              { id: '1', title: 'Medical Supplies', date: 'Today, 10:45 AM', amount: '85', status: 'COMPLETED' },
-              { id: '2', title: 'Lunch Delivery', date: 'Today, 12:30 PM', amount: '70', status: 'COMPLETED' },
-              { id: '3', title: 'Laptop Handoff', date: 'Yesterday', amount: '120', status: 'COMPLETED' }
-            ].map((item) => (
-              <View key={item.id} className="flex-row items-center bg-white p-6 rounded-[28px] mb-5 border border-indigo-50 shadow-sm">
-                <View className="w-14 h-14 bg-emerald-50 rounded-2xl items-center justify-center mr-5">
-                   <CheckCircle2 size={24} color="#10b981" />
-                </View>
-                <View className="flex-1">
-                   <Text className="text-lg font-black text-gray-900">{item.title}</Text>
-                   <Text className="text-xs font-bold text-gray-400 mt-1 uppercase tracking-tighter">{item.date}</Text>
-                </View>
-                <View className="items-end">
-                   <Text className="text-xl font-black text-gray-900">₹{item.amount}</Text>
-                   <Text className="text-[10px] font-bold text-emerald-500 uppercase tracking-tighter mt-1">{item.status}</Text>
-                </View>
-              </View>
-            ))}
+            {isLoading ? (
+               <Text className="text-gray-400 font-bold ml-1">Loading history...</Text>
+            ) : history.length === 0 ? (
+               <Text className="text-gray-400 font-bold ml-1">No completed deliveries yet.</Text>
+            ) : (
+               history.map((item: any) => (
+                 <View key={item._id} className="flex-row items-center bg-white p-6 rounded-[28px] mb-5 border border-indigo-50 shadow-sm">
+                   <View className="w-14 h-14 bg-emerald-50 rounded-2xl items-center justify-center mr-5">
+                      <CheckCircle2 size={24} color="#10b981" />
+                   </View>
+                   <View className="flex-1">
+                      <Text className="text-lg font-black text-gray-900">{item.itemCategory || 'Package'}</Text>
+                      <Text className="text-xs font-bold text-gray-400 mt-1 uppercase tracking-tighter">
+                         {new Date(item.updatedAt || item.createdAt).toLocaleDateString()}
+                      </Text>
+                   </View>
+                   <View className="items-end">
+                      <Text className="text-xl font-black text-gray-900">₹{item.carrierEarning || item.price}</Text>
+                      <Text className="text-[10px] font-bold text-emerald-500 uppercase tracking-tighter mt-1">{item.status}</Text>
+                   </View>
+                 </View>
+               ))
+            )}
             <View className="h-20" />
           </ScrollView>
         </SafeAreaView>

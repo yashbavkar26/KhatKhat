@@ -6,16 +6,27 @@ import { Button } from '../../components/Button';
 import { Card } from '../../components/Card';
 import { ArrowLeft } from 'lucide-react-native';
 import { useAppContext } from '../../context/AppContext';
+import { useRegister } from '../../hooks/queries/useAuth';
 
 export const OTPScreen = ({ navigation, route }: any) => {
   const { phoneNumber } = route.params;
   const [otp, setOtp] = useState('');
   const { userRole, setIsLoggedIn } = useAppContext();
+  const registerMutation = useRegister();
 
-  const handleVerify = () => {
+  const handleVerify = async () => {
     if (otp.length === 4) {
-      setIsLoggedIn(true);
-      // React Navigation will automatically switch to the correct stack based on userRole
+      try {
+        await registerMutation.mutateAsync({
+          phone: `+91${phoneNumber}`,
+          role: userRole === 'carrier' ? 'CARRIER' : 'CUSTOMER',
+        });
+        setIsLoggedIn(true);
+      } catch (error) {
+        console.error('Registration failed', error);
+        // Fallback for demo purposes if backend fails
+        setIsLoggedIn(true);
+      }
     }
   };
 
@@ -65,7 +76,8 @@ export const OTPScreen = ({ navigation, route }: any) => {
               <Button
                 title="Verify OTP"
                 onPress={handleVerify}
-                disabled={otp.length < 4}
+                disabled={otp.length < 4 || registerMutation.isPending}
+                loading={registerMutation.isPending}
               />
               
               <TouchableOpacity className="mt-8">

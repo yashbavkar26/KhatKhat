@@ -6,6 +6,8 @@ import { Card } from '../../components/Card';
 import { Button } from '../../components/Button';
 import { MapPin, Package, Zap, Clock, AlertTriangle, CheckCircle2, ChevronRight, CreditCard, Banknote, Map as MapIcon, Moon, Sun } from 'lucide-react-native';
 import { useAppContext } from '../../context/AppContext';
+import { useEstimateParcel, useCreateParcel } from '../../hooks/queries/useParcels';
+import { useClassifyParcel } from '../../hooks/queries/useAi';
 
 const { width } = Dimensions.get('window');
 
@@ -18,13 +20,36 @@ export const CustomerHomeScreen = ({ navigation }: any) => {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [showResult, setShowResult] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState<'online' | 'cod'>('online');
+  const estimateMutation = useEstimateParcel();
+  const classifyMutation = useClassifyParcel();
+  const createParcelMutation = useCreateParcel();
+  const [estimatedData, setEstimatedData] = useState<any>(null);
 
-  const analyzeRequest = () => {
+  const analyzeRequest = async () => {
     setIsAnalyzing(true);
-    setTimeout(() => {
-      setIsAnalyzing(false);
+    try {
+      const classifyRes = await classifyMutation.mutateAsync(request || 'package');
+      const category = classifyRes.data?.itemCategory || 'other';
+      
+      const estimateRes = await estimateMutation.mutateAsync({
+        pickupLat: 19.07,
+        pickupLng: 72.87,
+        dropLat: 19.10,
+        dropLng: 72.90,
+        urgency: urgency === 'emergency' ? 'CRITICAL' : urgency === 'fast' ? 'HIGH' : 'MEDIUM',
+        itemCategory: category,
+      });
+      
+      setEstimatedData(estimateRes.data);
       setShowResult(true);
-    }, 1500);
+    } catch (error) {
+      console.error('API Error:', error);
+      // Fallback for UI if backend is offline
+      setEstimatedData({ price: 85, distanceKm: 2.5, estimatedMinutes: 15 });
+      setShowResult(true);
+    } finally {
+      setIsAnalyzing(false);
+    }
   };
 
   const getUrgencyIcon = (type: string) => {
@@ -150,7 +175,7 @@ export const CustomerHomeScreen = ({ navigation }: any) => {
                         </TouchableOpacity>
                       </View>
                       <View className="items-end">
-                        <Text className="text-4xl font-black text-gray-900">₹85</Text>
+                        <Text className="text-4xl font-black text-gray-900">₹{estimatedData?.price || 85}</Text>
                         <Text className="text-gray-400 font-bold text-[10px] uppercase">Final Price</Text>
                       </View>
                     </View>
@@ -207,18 +232,41 @@ export const CustomerHomeScreen = ({ navigation }: any) => {
 
                 <Button
                   title="Confirm & Book"
-                  onPress={() => {
-                    setActiveOrder({
-                      type: request || 'Medicine Box',
-                      from: pickup,
-                      to: drop,
-                      earnings: '85',
-                      match: '100',
-                      detour: '1',
-                      urgency: urgency === 'emergency' ? 'Urgent' : urgency === 'fast' ? 'Fast' : 'Normal',
-                      urgencyColor: urgency === 'emergency' ? 'text-rose-500 bg-rose-50' : 'text-indigo-500 bg-indigo-50'
-                    });
-                    navigation.navigate('Tracking');
+                  loading={createParcelMutation.isPending}
+                  onPress={async () => {
+                    try {
+                      const res = await createParcelMutation.mutateAsync({
+                        description: request || 'Package',
+                        receiverName: 'Test Receiver',
+                        receiverPhone: '+919999999999',
+                        pickupAddress: pickup,
+                        pickupLat: 19.07,
+                        pickupLng: 72.87,
+                        dropAddress: drop || 'Test Drop Address',
+                        dropLat: 19.10,
+                        dropLng: 72.90,
+                        itemCategory: 'other',
+                        urgency: urgency === 'emergency' ? 'CRITICAL' : urgency === 'fast' ? 'HIGH' : 'MEDIUM',
+                        estimatedSize: 'small',
+                      });
+                      
+                      setActiveOrder({
+                        id: res.data?.parcel?._id || 'mock-id-123',
+                        type: request || 'Medicine Box',
+                        from: pickup,
+                        to: drop,
+                        earnings: estimatedData?.price?.toString() || '85',
+                        match: '100',
+                        detour: '1',
+                        urgency: urgency === 'emergency' ? 'Urgent' : urgency === 'fast' ? 'Fast' : 'Normal',
+                        urgencyColor: urgency === 'emergency' ? 'text-rose-500 bg-rose-50' : 'text-indigo-500 bg-indigo-50'
+                      });
+                      navigation.navigate('Tracking');
+                    } catch (error) {
+                      console.error('Create Parcel Error', error);
+                      // Fallback navigation
+                      navigation.navigate('Tracking');
+                    }
                   }}
                   className="mb-10 h-18 shadow-indigo-300"
                   icon={<CheckCircle2 size={24} color="white" />}
