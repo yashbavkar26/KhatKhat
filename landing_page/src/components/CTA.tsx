@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import Link from "next/link";
 import { motion } from "framer-motion";
 import { ArrowRight } from "lucide-react";
 
@@ -21,10 +22,16 @@ const CTA = () => {
               Join thousands of businesses and individuals who trust KhatKhat for their daily logistics needs.
             </p>
             <div className="flex flex-col sm:flex-row items-center gap-6 justify-center">
-              <button className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white px-10 py-5 rounded-full font-bold text-lg transition-all shadow-xl shadow-blue-900/20 flex items-center justify-center gap-2">
-                Get Started Now
-                <ArrowRight className="w-5 h-5" />
-              </button>
+              <Link href="/admin_dashboard/admin.html" className="w-full sm:w-auto">
+                <motion.button 
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  className="w-full bg-blue-600 hover:bg-blue-700 text-white px-10 py-5 rounded-full font-bold text-lg transition-all shadow-xl shadow-blue-900/20 flex items-center justify-center gap-2"
+                >
+                  Get Started Now
+                  <ArrowRight className="w-5 h-5" />
+                </motion.button>
+              </Link>
               <button className="w-full sm:w-auto bg-white/10 hover:bg-white/20 text-white px-10 py-5 rounded-full font-bold text-lg transition-all backdrop-blur-sm border border-white/10">
                 Contact Sales
               </button>

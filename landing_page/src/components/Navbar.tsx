@@ -18,7 +18,7 @@ const Navbar = () => {
   }, []);
 
   const navLinks = [
-    { name: "Home", href: "#" },
+    { name: "Home", href: "/" },
     { name: "Services", href: "#services" },
     { name: "How it Works", href: "#how-it-works" },
     { name: "Pricing", href: "#pricing" },
@@ -60,12 +60,17 @@ const Navbar = () => {
             ))}
           </div>
 
-          {/* CTA Button */}
           <div className="hidden md:block">
-            <button className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2.5 rounded-full font-medium transition-all flex items-center gap-2 shadow-lg shadow-blue-200">
-              Get Started
-              <ArrowRight className="w-4 h-4" />
-            </button>
+            <Link href="/admin_dashboard/admin.html">
+              <motion.button 
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2.5 rounded-full font-medium transition-all flex items-center gap-2 shadow-lg shadow-blue-200"
+              >
+                Get Started
+                <ArrowRight className="w-4 h-4" />
+              </motion.button>
+            </Link>
           </div>
 
           {/* Mobile Menu Toggle */}
@@ -96,9 +101,11 @@ const Navbar = () => {
                 {link.name}
               </Link>
             ))}
-            <button className="bg-blue-600 text-white px-6 py-3 rounded-xl font-medium mt-2">
-              Get Started
-            </button>
+            <Link href="/admin_dashboard/admin.html" onClick={() => setIsMobileMenuOpen(false)}>
+              <button className="w-full bg-blue-600 text-white px-6 py-3 rounded-xl font-medium mt-2">
+                Get Started
+              </button>
+            </Link>
           </div>
         </motion.div>
       )}

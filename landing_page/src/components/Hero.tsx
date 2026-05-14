@@ -2,8 +2,9 @@
 
 import React from "react";
 import Image from "next/image";
+import Link from "next/link";
 import { motion } from "framer-motion";
-import { Play, ArrowRight, Package, Truck, ShieldCheck, TrendingUp } from "lucide-react";
+import { Play, ArrowRight, Package, ShieldCheck, TrendingUp } from "lucide-react";
 
 const Hero = () => {
   return (
@@ -55,10 +56,16 @@ const Hero = () => {
               transition={{ duration: 0.5, delay: 0.3 }}
               className="flex flex-col sm:flex-row items-center gap-4 justify-center lg:justify-start"
             >
-              <button className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white px-8 py-4 rounded-full font-bold text-lg transition-all shadow-xl shadow-blue-200 flex items-center justify-center gap-2">
-                Get Started
-                <ArrowRight className="w-5 h-5" />
-              </button>
+              <Link href="/admin_dashboard/admin.html" className="w-full sm:w-auto">
+                <motion.button 
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white px-8 py-4 rounded-full font-bold text-lg transition-all shadow-xl shadow-blue-200 flex items-center justify-center gap-2"
+                >
+                  Get Started
+                  <ArrowRight className="w-5 h-5" />
+                </motion.button>
+              </Link>
               <button className="w-full sm:w-auto bg-white border border-slate-200 hover:border-blue-600 text-slate-700 px-8 py-4 rounded-full font-bold text-lg transition-all flex items-center justify-center gap-2">
                 <Play className="w-5 h-5 fill-current" />
                 Watch Demo
@@ -81,12 +88,32 @@ const Hero = () => {
 
           {/* Right Content - 3D Scene & Analytics */}
           <div className="flex-1 relative w-full max-w-2xl">
+            {/* Road Animation */}
+            <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[120%] h-32 bg-slate-100/50 rounded-[50%] blur-xl -z-10 overflow-hidden">
+               <motion.div 
+                 animate={{ x: [-100, 0] }}
+                 transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                 className="w-[200%] h-full bg-[linear-gradient(90deg,transparent_0%,rgba(0,0,0,0.05)_50%,transparent_100%)] bg-[length:100px_100%] opacity-50"
+               />
+            </div>
+
             <motion.div
               initial={{ opacity: 0, scale: 0.8 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.8 }}
-              className="relative rounded-3xl overflow-hidden shadow-2xl"
+              animate={{ 
+                opacity: 1, 
+                scale: 1,
+                y: [0, -10, 0],
+              }}
+              transition={{ 
+                opacity: { duration: 0.8 },
+                scale: { duration: 0.8 },
+                y: { duration: 3, repeat: Infinity, ease: "easeInOut" }
+              }}
+              className="relative rounded-3xl overflow-hidden shadow-2xl group"
             >
+              {/* Futuristic Glow */}
+              <div className="absolute inset-0 bg-blue-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
+              
               <Image
                 src="/images/hero-illustration.png"
                 alt="Logistics Illustration"
@@ -95,6 +122,18 @@ const Hero = () => {
                 className="w-full h-auto"
                 priority
               />
+
+              {/* Road lines simulation */}
+              <div className="absolute bottom-4 left-0 w-full h-1 flex justify-around opacity-30">
+                {[1,2,3,4,5].map(i => (
+                  <motion.div 
+                    key={i}
+                    animate={{ x: [200, -200] }}
+                    transition={{ duration: 0.8, repeat: Infinity, ease: "linear", delay: i * 0.15 }}
+                    className="w-8 h-full bg-slate-400 rounded-full"
+                  />
+                ))}
+              </div>
             </motion.div>
 
             {/* Floating Analytics Cards */}

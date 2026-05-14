@@ -1,0 +1,715 @@
+Page: KhatKhat Admin - Carrier Profile Details
+
+```html
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KhatKhat Admin - Carrier Profile</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://code.iconify.design/iconify-icon/1.0.7/iconify-icon.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+        rel="stylesheet">
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        uber: {
+                            black: '#000000',
+                            panel: '#0A0A0A',
+                            border: '#1A1A1A',
+                            text: '#FFFFFF',
+                            muted: '#808080',
+                        },
+                        brand: {
+                            neon: '#FF5A00',
+                            dark: '#1a0900',
+                        }
+                    },
+                    animation: {
+                        'flow': 'flow 2s linear infinite',
+                        'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                        'pulse-ring': 'pulse-ring 2s cubic-bezier(0.215, 0.61, 0.355, 1) infinite',
+                        'radar': 'radar 4s linear infinite',
+                    },
+                    keyframes: {
+                        flow: {
+                            '0%': { strokeDashoffset: '100' },
+                            '100%': { strokeDashoffset: '0' },
+                        },
+                        'pulse-ring': {
+                            '0%': { transform: 'scale(0.8)', opacity: '0.8' },
+                            '100%': { transform: 'scale(2.5)', opacity: '0' },
+                        },
+                        radar: {
+                            '0%': { transform: 'rotate(0deg)' },
+                            '100%': { transform: 'rotate(360deg)' },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #000;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #222;
+            border-radius: 10px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #444;
+        }
+
+        .glass-panel {
+            background: rgba(10, 10, 10, 0.7);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .text-neon {
+            text-shadow: 0 0 10px rgba(255, 90, 0, 0.5);
+        }
+
+        /* Custom map styling */
+        .map-grid {
+            background-image:
+                linear-gradient(to right, rgba(255, 255, 255, 0.05) 1px, transparent 1px),
+                linear-gradient(to bottom, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+            background-size: 40px 40px;
+        }
+    </style>
+    <style>
+        sd-component {
+            display: block;
+        }
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/petite-vue@0.4.1/dist/petite-vue.iife.js" defer init></script>
+</head>
+
+<body class="bg-uber-black text-uber-text font-sans selection:bg-brand-neon selection:text-white overflow-hidden">
+
+    <div class="flex h-screen w-full">
+
+        <!-- Sidebar Navigation -->
+        <!-- component: SidebarNavigation (cde169a1-c9a9-413f-bd2f-1f1c93606389) -->
+        <div
+            v-scope="{ ...{&quot;activeItem&quot;:&quot;users&quot;,&quot;fraudCount&quot;:3,&quot;overviewHref&quot;:&quot;#overview&quot;,&quot;relayHref&quot;:&quot;admin.html&quot;,&quot;mapHref&quot;:&quot;#map&quot;,&quot;parcelsHref&quot;:&quot;parcel.html&quot;,&quot;usersHref&quot;:&quot;career_profile.html&quot;,&quot;fraudHref&quot;:&quot;fraud_investigation.html&quot;,&quot;aiHref&quot;:&quot;route_optimization.html&quot;,&quot;revenueHref&quot;:&quot;#revenue&quot;,&quot;adminName&quot;:&quot;Arjun Desk&quot;,&quot;adminRole&quot;:&quot;Super Admin&quot;,&quot;adminAvatar&quot;:&quot;https://i.pravatar.cc/150?u=admin&quot;}, $emit() {} }">
+            <aside class="w-64 flex-shrink-0 border-r border-uber-border bg-uber-black flex flex-col z-20 relative">
+                <!-- Logo Area -->
+                <div class="h-16 flex items-center px-6 border-b border-uber-border">
+                    <div class="flex items-center gap-3">
+                        <div class="w-8 h-8 bg-brand-neon rounded-sm flex items-center justify-center relative">
+                            <div class="absolute inset-0 bg-brand-neon blur-md opacity-50"></div>
+                            <iconify-icon icon="lucide:box" class="text-white relative z-10 text-lg"></iconify-icon>
+                        </div>
+                        <span class="font-bold tracking-tight text-xl">KhatKhat</span>
+                    </div>
+                </div>
+
+                <!-- Nav Links -->
+                <nav class="flex-1 overflow-y-auto py-6 px-3 space-y-1">
+                    <p class="px-3 text-xs font-semibold text-uber-muted uppercase tracking-wider mb-2">Logistics Core
+                    </p>
+
+                    <a :href="overviewHref"
+                        :class="{ 'text-white bg-white/5 border border-white/10': activeItem === 'overview', 'text-uber-muted hover:text-white': activeItem !== 'overview' }"
+                        class="flex items-center gap-3 px-3 py-2.5 text-sm font-medium rounded-lg transition-colors">
+                        <iconify-icon icon="lucide:layout-dashboard" class="text-lg"></iconify-icon>
+                        Overview Analytics
+                    </a>
+
+                    <a :href="relayHref"
+                        :class="{ 'text-white bg-white/5 border border-white/10': activeItem === 'relay', 'text-uber-muted hover:text-white': activeItem !== 'relay' }"
+                        class="flex items-center gap-3 px-3 py-2.5 text-sm font-medium rounded-lg transition-colors relative overflow-hidden">
+                        <div v-if="activeItem === 'relay'"
+                            class="absolute left-0 top-0 bottom-0 w-1 bg-brand-neon shadow-[0_0_8px_#FF5A00]"></div>
+                        <iconify-icon :class="{ 'text-brand-neon': activeItem === 'relay' }" icon="lucide:network"
+                            class="text-lg"></iconify-icon>
+                        Relay Chain Visualizer
+                    </a>
+
+                    <a :href="mapHref"
+                        :class="{ 'text-white bg-white/5 border border-white/10': activeItem === 'map', 'text-uber-muted hover:text-white': activeItem !== 'map' }"
+                        class="flex items-center justify-between px-3 py-2.5 text-sm font-medium rounded-lg transition-colors">
+                        <div class="flex items-center gap-3">
+                            <iconify-icon icon="lucide:map" class="text-lg"></iconify-icon>
+                            Live Operations
+                        </div>
+                        <span class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
+                    </a>
+
+                    <a :href="parcelsHref"
+                        :class="{ 'text-white bg-white/5 border border-white/10': activeItem === 'parcels', 'text-uber-muted hover:text-white': activeItem !== 'parcels' }"
+                        class="flex items-center gap-3 px-3 py-2.5 text-sm font-medium rounded-lg transition-colors">
+                        <iconify-icon icon="lucide:package" class="text-lg"></iconify-icon>
+                        Parcel Management
+                    </a>
+
+                    <div class="pt-4 pb-2">
+                        <p class="px-3 text-xs font-semibold text-uber-muted uppercase tracking-wider mb-2">Network
+                            Health</p>
+                    </div>
+
+                    <a :href="usersHref"
+                        :class="{ 'text-white bg-white/5 border border-white/10': activeItem === 'users', 'text-uber-muted hover:text-white': activeItem !== 'users' }"
+                        class="flex items-center gap-3 px-3 py-2.5 text-sm font-medium rounded-lg transition-colors">
+                        <iconify-icon icon="lucide:users" class="text-lg"></iconify-icon>
+                        Users & Carriers
+                    </a>
+
+                    <a :href="fraudHref"
+                        :class="{ 'text-white bg-white/5 border border-white/10': activeItem === 'fraud', 'text-uber-muted hover:text-white': activeItem !== 'fraud' }"
+                        class="flex items-center justify-between px-3 py-2.5 text-sm font-medium rounded-lg transition-colors">
+                        <div class="flex items-center gap-3">
+                            <iconify-icon icon="lucide:shield-alert" class="text-lg"></iconify-icon>
+                            Trust & Fraud
+                        </div>
+                        <span class="bg-white/10 text-xs px-2 py-0.5 rounded-full text-white">{{ fraudCount }}</span>
+                    </a>
+
+                    <a :href="aiHref"
+                        :class="{ 'text-white bg-white/5 border border-white/10': activeItem === 'ai', 'text-uber-muted hover:text-white': activeItem !== 'ai' }"
+                        class="flex items-center gap-3 px-3 py-2.5 text-sm font-medium rounded-lg transition-colors">
+                        <iconify-icon icon="lucide:cpu" class="text-lg"></iconify-icon>
+                        AI Matching Engine
+                    </a>
+
+                    <a :href="revenueHref"
+                        :class="{ 'text-white bg-white/5 border border-white/10': activeItem === 'revenue', 'text-uber-muted hover:text-white': activeItem !== 'revenue' }"
+                        class="flex items-center gap-3 px-3 py-2.5 text-sm font-medium rounded-lg transition-colors">
+                        <iconify-icon icon="lucide:wallet" class="text-lg"></iconify-icon>
+                        Revenue (Razorpay)
+                    </a>
+                </nav>
+
+                <!-- User Profile Bottom -->
+                <div class="p-4 border-t border-uber-border">
+                    <button @click="$emit('profileClick')"
+                        class="flex items-center gap-3 w-full hover:bg-white/5 p-2 rounded-lg transition-colors text-left">
+                        <div
+                            class="w-8 h-8 rounded-full bg-uber-border flex items-center justify-center overflow-hidden">
+                            <img :src="adminAvatar" :alt="adminName" class="w-full h-full object-cover">
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <p class="text-sm font-medium truncate">{{ adminName }}</p>
+                            <p class="text-xs text-uber-muted truncate">{{ adminRole }}</p>
+                        </div>
+                        <iconify-icon icon="lucide:chevrons-up-down" class="text-uber-muted"></iconify-icon>
+                    </button>
+                </div>
+            </aside>
+        </div>
+        <!-- /component: SidebarNavigation (cde169a1-c9a9-413f-bd2f-1f1c93606389) -->
+
+        <!-- Main Content Area -->
+        <main class="flex-1 flex flex-col h-screen relative bg-uber-black">
+
+            <!-- Background Pattern -->
+            <div class="absolute inset-0 pointer-events-none"
+                style="background-image: radial-gradient(rgba(255,255,255,0.03) 1px, transparent 1px); background-size: 32px 32px; opacity: 0.5;">
+            </div>
+
+            <!-- Top Header -->
+            <!-- component: PageHeader (78fd64bc-351e-40da-bce0-eb45478205db) -->
+            <div
+                v-scope="{ ...{&quot;pageTitle&quot;:&quot;Carrier Profile: #8492&quot;,&quot;regionStatus&quot;:&quot;Goa Region (Live)&quot;,&quot;searchPlaceholder&quot;:&quot;Search tracking ID, carrier...&quot;,&quot;notificationCount&quot;:1}, $emit() {} }">
+                <header
+                    class="h-16 flex items-center justify-between px-8 border-b border-uber-border bg-uber-black/80 backdrop-blur-md z-30 sticky top-0">
+                    <div class="flex items-center gap-4">
+                        <h1 class="text-lg font-semibold tracking-tight">{{ pageTitle }}</h1>
+                        <div class="h-4 w-px bg-uber-border"></div>
+                        <div
+                            class="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 border border-white/10 text-xs font-medium">
+                            <span class="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></span>
+                            {{ regionStatus }}
+                        </div>
+                    </div>
+
+                    <div class="flex items-center gap-4">
+                        <!-- Global Search -->
+                        <div class="relative hidden md:block">
+                            <iconify-icon icon="lucide:search"
+                                class="absolute left-3 top-1/2 -translate-y-1/2 text-uber-muted text-sm"></iconify-icon>
+                            <input type="text" :placeholder="searchPlaceholder"
+                                @input="$emit('search', $event.target.value)"
+                                class="bg-uber-panel border border-uber-border rounded-lg pl-9 pr-4 py-1.5 text-sm focus:outline-none focus:border-brand-neon focus:ring-1 focus:ring-brand-neon transition-all w-64 placeholder-uber-muted">
+                            <div class="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
+                                <kbd
+                                    class="bg-white/10 border border-white/10 rounded px-1.5 text-[10px] text-uber-muted">⌘</kbd>
+                                <kbd
+                                    class="bg-white/10 border border-white/10 rounded px-1.5 text-[10px] text-uber-muted">K</kbd>
+                            </div>
+                        </div>
+
+                        <button @click="$emit('notificationClick')"
+                            class="relative p-2 text-uber-muted hover:text-white transition-colors">
+                            <iconify-icon icon="lucide:bell" class="text-xl"></iconify-icon>
+                            <span v-if="notificationCount > 0"
+                                class="absolute top-1.5 right-1.5 w-2 h-2 bg-brand-neon rounded-full border-2 border-uber-black"></span>
+                        </button>
+                        <button @click="$emit('settingsClick')"
+                            class="p-2 text-uber-muted hover:text-white transition-colors">
+                            <iconify-icon icon="lucide:settings" class="text-xl"></iconify-icon>
+                        </button>
+                    </div>
+                </header>
+            </div>
+            <!-- /component: PageHeader (78fd64bc-351e-40da-bce0-eb45478205db) -->
+
+            <!-- Scrollable Content -->
+            <div class="flex-1 overflow-y-auto p-8 relative z-10">
+                <div class="max-w-7xl mx-auto space-y-6">
+
+                    <!-- Profile Banner -->
+                    <div
+                        class="bg-uber-panel border border-uber-border rounded-xl p-6 relative overflow-hidden flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+                        <!-- Abstract Background Glow -->
+                        <div
+                            class="absolute -left-20 -top-20 w-64 h-64 bg-brand-neon/10 rounded-full blur-[80px] pointer-events-none">
+                        </div>
+
+                        <!-- Info -->
+                        <div class="flex items-center gap-6 relative z-10">
+                            <div class="relative">
+                                <div
+                                    class="w-20 h-20 rounded-full bg-uber-border border-2 border-brand-neon overflow-hidden p-0.5">
+                                    <img src="https://pquxfbbxflqvtidtlrhl.supabase.co/storage/v1/object/public/hmac-uploads/brand/aa611a48-0f31-4fc3-91b8-a97e15fbee97/assets/7d9bed9b-8b0f-4125-90a3-af750783d201.png"
+                                        alt="Carrier"
+                                        class="w-full h-full object-cover rounded-full grayscale hover:grayscale-0 transition-all duration-500">
+                                </div>
+                                <span
+                                    class="absolute bottom-0 right-0 w-5 h-5 bg-green-500 border-4 border-uber-panel rounded-full flex items-center justify-center">
+                                    <span
+                                        class="absolute w-full h-full bg-green-500 rounded-full animate-ping opacity-50"></span>
+                                </span>
+                            </div>
+                            <div>
+                                <div class="flex items-center gap-3 mb-1">
+                                    <h2 class="text-2xl font-bold tracking-tight">Rahul Desai</h2>
+                                    <span
+                                        class="px-2 py-0.5 rounded bg-brand-neon/10 text-brand-neon border border-brand-neon/20 text-xs font-bold uppercase tracking-wider">
+                                        Top Rated
+                                    </span>
+                                </div>
+                                <div class="flex flex-wrap items-center gap-4 text-sm text-uber-muted">
+                                    <span class="flex items-center gap-1.5">
+                                        <iconify-icon icon="lucide:id-card"></iconify-icon> ID: #8492
+                                    </span>
+                                    <span class="flex items-center gap-1.5">
+                                        <iconify-icon icon="lucide:map-pin"></iconify-icon> Panaji Hub (Primary)
+                                    </span>
+                                    <span class="flex items-center gap-1.5">
+                                        <iconify-icon icon="lucide:calendar"></iconify-icon> Joined: Oct 2023
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Actions -->
+                        <div class="flex items-center gap-3 relative z-10">
+                            <button
+                                class="flex items-center gap-2 px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-sm font-medium transition-colors">
+                                <iconify-icon icon="lucide:phone"></iconify-icon> VoIP Call
+                            </button>
+                            <button
+                                class="flex items-center gap-2 px-4 py-2 bg-brand-neon/10 hover:bg-brand-neon/20 text-brand-neon border border-brand-neon/30 rounded-lg text-sm font-medium transition-colors">
+                                <iconify-icon icon="lucide:map"></iconify-icon> Track Live
+                            </button>
+                            <div class="h-8 w-px bg-uber-border mx-1"></div>
+                            <button class="p-2 text-uber-muted hover:text-white transition-colors">
+                                <iconify-icon icon="lucide:more-vertical" class="text-xl"></iconify-icon>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Metrics Row -->
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                        <!-- component: MetricCard (559912a6-356c-4fcb-8921-e00edf89bc4c) -->
+                        <div
+                            v-scope="{ ...{&quot;label&quot;:&quot;Acceptance Rate&quot;,&quot;value&quot;:&quot;98.5%&quot;,&quot;icon&quot;:&quot;lucide:check-circle-2&quot;,&quot;iconColor&quot;:&quot;text-green-500&quot;,&quot;trendValue&quot;:&quot;+2.1%&quot;,&quot;trendIcon&quot;:&quot;lucide:trending-up&quot;,&quot;trendClass&quot;:&quot;text-green-500&quot;,&quot;hasGlow&quot;:false,&quot;glowColor&quot;:&quot;#FF5A00&quot;,&quot;glowOpacity&quot;:0.05}, $emit() {} }">
+                            <div class="bg-uber-panel border border-uber-border rounded-xl p-5 relative overflow-hidden group hover:border-white/20 transition-colors"
+                                @click="$emit('click', { label: label })">
+                                <div v-if="hasGlow"
+                                    class="absolute top-0 right-0 w-24 h-24 rounded-full blur-2xl group-hover:opacity-100 transition-opacity"
+                                    :style="{ background: glowColor, opacity: glowOpacity }"></div>
+                                <p class="text-sm text-uber-muted font-medium mb-1 flex items-center gap-2">
+                                    <iconify-icon :icon="icon" :class="iconColor"></iconify-icon>
+                                    {{ label }}
+                                </p>
+                                <div class="flex items-baseline gap-2">
+                                    <h2 class="text-3xl font-bold tracking-tight">{{ value }}</h2>
+                                    <span v-if="trendValue" :class="trendClass"
+                                        class="text-xs font-medium flex items-center">
+                                        <iconify-icon v-if="trendIcon" :icon="trendIcon" class="mr-1"></iconify-icon> {{
+                                        trendValue }}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- /component: MetricCard (559912a6-356c-4fcb-8921-e00edf89bc4c) -->
+
+                        <!-- component: MetricCard (559912a6-356c-4fcb-8921-e00edf89bc4c) -->
+                        <div
+                            v-scope="{ ...{&quot;label&quot;:&quot;On-Time Delivery&quot;,&quot;value&quot;:&quot;94.2%&quot;,&quot;icon&quot;:&quot;lucide:clock&quot;,&quot;iconColor&quot;:&quot;text-blue-400&quot;,&quot;trendValue&quot;:&quot;-0.5%&quot;,&quot;trendIcon&quot;:&quot;lucide:trending-down&quot;,&quot;trendClass&quot;:&quot;text-red-500&quot;,&quot;hasGlow&quot;:false,&quot;glowColor&quot;:&quot;#FF5A00&quot;,&quot;glowOpacity&quot;:0.05}, $emit() {} }">
+                            <div class="bg-uber-panel border border-uber-border rounded-xl p-5 relative overflow-hidden group hover:border-white/20 transition-colors"
+                                @click="$emit('click', { label: label })">
+                                <div v-if="hasGlow"
+                                    class="absolute top-0 right-0 w-24 h-24 rounded-full blur-2xl group-hover:opacity-100 transition-opacity"
+                                    :style="{ background: glowColor, opacity: glowOpacity }"></div>
+                                <p class="text-sm text-uber-muted font-medium mb-1 flex items-center gap-2">
+                                    <iconify-icon :icon="icon" :class="iconColor"></iconify-icon>
+                                    {{ label }}
+                                </p>
+                                <div class="flex items-baseline gap-2">
+                                    <h2 class="text-3xl font-bold tracking-tight">{{ value }}</h2>
+                                    <span v-if="trendValue" :class="trendClass"
+                                        class="text-xs font-medium flex items-center">
+                                        <iconify-icon v-if="trendIcon" :icon="trendIcon" class="mr-1"></iconify-icon> {{
+                                        trendValue }}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- /component: MetricCard (559912a6-356c-4fcb-8921-e00edf89bc4c) -->
+
+                        <!-- component: MetricCard (559912a6-356c-4fcb-8921-e00edf89bc4c) -->
+                        <div
+                            v-scope="{ ...{&quot;label&quot;:&quot;Distance Today&quot;,&quot;value&quot;:&quot;124 km&quot;,&quot;icon&quot;:&quot;lucide:route&quot;,&quot;iconColor&quot;:&quot;text-purple-400&quot;,&quot;trendValue&quot;:&quot;Avg: 110km&quot;,&quot;trendIcon&quot;:&quot;&quot;,&quot;trendClass&quot;:&quot;text-uber-muted&quot;,&quot;hasGlow&quot;:false,&quot;glowColor&quot;:&quot;#FF5A00&quot;,&quot;glowOpacity&quot;:0.05}, $emit() {} }">
+                            <div class="bg-uber-panel border border-uber-border rounded-xl p-5 relative overflow-hidden group hover:border-white/20 transition-colors"
+                                @click="$emit('click', { label: label })">
+                                <div v-if="hasGlow"
+                                    class="absolute top-0 right-0 w-24 h-24 rounded-full blur-2xl group-hover:opacity-100 transition-opacity"
+                                    :style="{ background: glowColor, opacity: glowOpacity }"></div>
+                                <p class="text-sm text-uber-muted font-medium mb-1 flex items-center gap-2">
+                                    <iconify-icon :icon="icon" :class="iconColor"></iconify-icon>
+                                    {{ label }}
+                                </p>
+                                <div class="flex items-baseline gap-2">
+                                    <h2 class="text-3xl font-bold tracking-tight">{{ value }}</h2>
+                                    <span v-if="trendValue" :class="trendClass"
+                                        class="text-xs font-medium flex items-center">
+                                        <iconify-icon v-if="trendIcon" :icon="trendIcon" class="mr-1"></iconify-icon> {{
+                                        trendValue }}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- /component: MetricCard (559912a6-356c-4fcb-8921-e00edf89bc4c) -->
+
+                        <!-- component: MetricCard (559912a6-356c-4fcb-8921-e00edf89bc4c) -->
+                        <div
+                            v-scope="{ ...{&quot;label&quot;:&quot;Trust Score&quot;,&quot;value&quot;:&quot;99&quot;,&quot;icon&quot;:&quot;lucide:shield-check&quot;,&quot;iconColor&quot;:&quot;text-brand-neon&quot;,&quot;trendValue&quot;:&quot;Top 5%&quot;,&quot;trendIcon&quot;:&quot;lucide:award&quot;,&quot;trendClass&quot;:&quot;text-brand-neon&quot;,&quot;hasGlow&quot;:true,&quot;glowColor&quot;:&quot;#FF5A00&quot;,&quot;glowOpacity&quot;:0.1}, $emit() {} }">
+                            <div class="bg-uber-panel border border-uber-border rounded-xl p-5 relative overflow-hidden group hover:border-white/20 transition-colors"
+                                @click="$emit('click', { label: label })">
+                                <div v-if="hasGlow"
+                                    class="absolute top-0 right-0 w-24 h-24 rounded-full blur-2xl group-hover:opacity-100 transition-opacity"
+                                    :style="{ background: glowColor, opacity: glowOpacity }"></div>
+                                <p class="text-sm text-uber-muted font-medium mb-1 flex items-center gap-2">
+                                    <iconify-icon :icon="icon" :class="iconColor"></iconify-icon>
+                                    {{ label }}
+                                </p>
+                                <div class="flex items-baseline gap-2">
+                                    <h2 class="text-3xl font-bold tracking-tight">{{ value }}</h2>
+                                    <span v-if="trendValue" :class="trendClass"
+                                        class="text-xs font-medium flex items-center">
+                                        <iconify-icon v-if="trendIcon" :icon="trendIcon" class="mr-1"></iconify-icon> {{
+                                        trendValue }}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- /component: MetricCard (559912a6-356c-4fcb-8921-e00edf89bc4c) -->
+                    </div>
+
+                    <!-- Main Layout Grid -->
+                    <div class="grid grid-cols-1 xl:grid-cols-3 gap-6">
+
+                        <!-- Left Column: Map & Route (Span 2) -->
+                        <div class="xl:col-span-2 space-y-6">
+
+                            <!-- Live Map & Assignment -->
+                            <div
+                                class="bg-uber-panel border border-uber-border rounded-xl flex flex-col overflow-hidden h-[500px]">
+                                <div
+                                    class="p-4 border-b border-uber-border flex justify-between items-center bg-black/40">
+                                    <div class="flex items-center gap-3">
+                                        <span class="relative flex h-3 w-3">
+                                            <span
+                                                class="animate-ping absolute inline-flex h-full w-full rounded-full bg-brand-neon opacity-75"></span>
+                                            <span
+                                                class="relative inline-flex rounded-full h-3 w-3 bg-brand-neon"></span>
+                                        </span>
+                                        <h3 class="font-semibold">Live Assignment: Panaji → Mapusa Relay</h3>
+                                    </div>
+                                    <div class="flex items-center gap-4 text-xs font-mono text-uber-muted">
+                                        <span>ETA: 14m</span>
+                                        <span>Dist: 4.2 km</span>
+                                    </div>
+                                </div>
+
+                                <div class="flex-1 flex flex-col md:flex-row">
+                                    <!-- Route Timeline Sidebar -->
+                                    <div
+                                        class="w-full md:w-1/3 border-r border-uber-border bg-[#050505] p-5 overflow-y-auto">
+                                        <h4 class="text-xs font-bold text-uber-muted uppercase tracking-wider mb-6">
+                                            Route Itinerary</h4>
+
+                                        <div class="relative">
+                                            <!-- Connecting Line -->
+                                            <div class="absolute left-[11px] top-2 bottom-6 w-0.5 bg-uber-border"></div>
+                                            <div
+                                                class="absolute left-[11px] top-2 h-1/2 w-0.5 bg-brand-neon shadow-[0_0_8px_#FF5A00]">
+                                            </div>
+
+                                            <!-- Stop 1 (Completed) -->
+                                            <div class="flex gap-4 mb-8 relative">
+                                                <div
+                                                    class="relative z-10 w-6 h-6 rounded-full bg-uber-panel border-2 border-uber-border flex items-center justify-center">
+                                                    <div class="w-2 h-2 rounded-full bg-uber-muted"></div>
+                                                </div>
+                                                <div>
+                                                    <p class="text-sm font-medium text-uber-muted">Panaji Hub (Pickup)
+                                                    </p>
+                                                    <p class="text-xs text-uber-muted mt-1">10:14 AM • Verified</p>
+                                                </div>
+                                            </div>
+
+                                            <!-- Stop 2 (Active) -->
+                                            <div class="flex gap-4 mb-8 relative">
+                                                <div
+                                                    class="relative z-10 w-6 h-6 rounded-full bg-black border-2 border-brand-neon flex items-center justify-center">
+                                                    <div class="w-2 h-2 rounded-full bg-brand-neon animate-pulse"></div>
+                                                </div>
+                                                <div>
+                                                    <p class="text-sm font-semibold text-white">Porvorim Checkpoint</p>
+                                                    <div
+                                                        class="mt-2 bg-brand-neon/10 border border-brand-neon/20 rounded p-2 inline-block">
+                                                        <p class="text-xs text-brand-neon font-medium">Approaching (2.1
+                                                            km away)</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <!-- Stop 3 (Pending) -->
+                                            <div class="flex gap-4 relative opacity-50">
+                                                <div
+                                                    class="relative z-10 w-6 h-6 rounded-full bg-uber-panel border-2 border-uber-border flex items-center justify-center">
+                                                </div>
+                                                <div>
+                                                    <p class="text-sm font-medium text-white">Mapusa Hub (Dropoff)</p>
+                                                    <p class="text-xs text-uber-muted mt-1">Est. 10:45 AM</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Map Visualizer -->
+                                    <div class="w-full md:w-2/3 relative bg-[#0a0a0c] overflow-hidden map-grid">
+                                        <!-- Vignette -->
+                                        <div
+                                            class="absolute inset-0 shadow-[inset_0_0_100px_rgba(0,0,0,0.9)] z-10 pointer-events-none">
+                                        </div>
+
+                                        <!-- Map SVG Elements -->
+                                        <svg class="absolute inset-0 w-full h-full" viewBox="0 0 400 400"
+                                            preserveAspectRatio="xMidYMid slice">
+                                            <defs>
+                                                <filter id="glow-marker">
+                                                    <feGaussianBlur stdDeviation="3" result="blur" />
+                                                    <feMerge>
+                                                        <feMergeNode in="blur" />
+                                                        <feMergeNode in="SourceGraphic" />
+                                                    </feMerge>
+                                                </filter>
+                                            </defs>
+                                            <!-- Roads -->
+                                            <path d="M -50 150 Q 150 200 200 350 T 450 250" fill="none" stroke="#1A1A1A"
+                                                stroke-width="12" stroke-linecap="round" />
+                                            <path d="M 100 -50 L 150 180" fill="none" stroke="#1A1A1A" stroke-width="8"
+                                                stroke-linecap="round" />
+
+                                            <!-- Active Route Line -->
+                                            <path d="M 150 200 Q 175 275 200 350" fill="none" stroke="#FF5A00"
+                                                stroke-width="4" stroke-dasharray="8 8" opacity="0.5"
+                                                class="animate-flow" />
+                                            <path d="M 50 170 Q 100 185 150 200" fill="none" stroke="#FF5A00"
+                                                stroke-width="4" />
+
+                                            <!-- Locations -->
+                                            <circle cx="50" cy="170" r="6" fill="#333" stroke="#666" stroke-width="2" />
+                                            <text x="50" y="150" fill="#666" font-size="12" font-weight="bold"
+                                                text-anchor="middle" font-family="Inter">PANAJI</text>
+
+                                            <circle cx="200" cy="350" r="6" fill="#000" stroke="#666"
+                                                stroke-width="2" />
+                                            <text x="200" y="370" fill="#666" font-size="12" font-weight="bold"
+                                                text-anchor="middle" font-family="Inter">MAPUSA</text>
+
+                                            <!-- Carrier Radar/Marker -->
+                                            <g transform="translate(150, 200)">
+                                                <!-- Radar sweep -->
+                                                <path d="M 0 0 L 0 -60 A 60 60 0 0 1 60 0 Z"
+                                                    fill="rgba(255, 90, 0, 0.15)" class="animate-radar origin-center" />
+                                                <circle r="60" fill="none" stroke="rgba(255, 90, 0, 0.2)"
+                                                    stroke-width="1" />
+
+                                                <!-- Core Marker -->
+                                                <circle r="16" fill="rgba(255, 90, 0, 0.2)"
+                                                    class="animate-pulse-ring origin-center" />
+                                                <circle r="8" fill="#000" stroke="#FF5A00" stroke-width="3"
+                                                    filter="url(#glow-marker)" />
+                                                <path d="M -3 -1 L 3 -1 L 0 -5 Z" fill="#FFF" transform="rotate(35)" />
+                                            </g>
+                                        </svg>
+
+                                        <!-- Overlays -->
+                                        <div class="absolute top-4 right-4 z-20 flex flex-col gap-2">
+                                            <div
+                                                class="bg-black/60 backdrop-blur-md border border-white/10 rounded-lg p-2 text-xs font-mono text-white flex flex-col gap-1 shadow-lg">
+                                                <span class="text-brand-neon">SPD: 42 km/h</span>
+                                                <span class="text-uber-muted">HDG: 35° NE</span>
+                                            </div>
+                                            <div class="flex flex-col gap-1">
+                                                <button
+                                                    class="w-8 h-8 bg-black/60 backdrop-blur-md border border-white/10 rounded-md flex items-center justify-center text-white hover:bg-white/10 transition-colors">
+                                                    <iconify-icon icon="lucide:plus"></iconify-icon>
+                                                </button>
+                                                <button
+                                                    class="w-8 h-8 bg-black/60 backdrop-blur-md border border-white/10 rounded-md flex items-center justify-center text-white hover:bg-white/10 transition-colors">
+                                                    <iconify-icon icon="lucide:minus"></iconify-icon>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Right Column: Details & Comms (Span 1) -->
+                        <div class="xl:col-span-1 space-y-6">
+
+                            <!-- Vehicle & Compliance Info -->
+                            <div class="bg-uber-panel border border-uber-border rounded-xl p-5">
+                                <h3
+                                    class="font-semibold mb-4 flex items-center gap-2 text-sm uppercase tracking-wider text-uber-muted">
+                                    <iconify-icon icon="lucide:shield-check"></iconify-icon>
+                                    Vehicle & Compliance
+                                </h3>
+
+                                <div class="space-y-4">
+                                    <div class="flex justify-between items-center pb-3 border-b border-uber-border/50">
+                                        <span class="text-sm text-uber-muted">Vehicle Model</span>
+                                        <span class="text-sm font-medium">Hero Splendor Plus</span>
+                                    </div>
+                                    <div class="flex justify-between items-center pb-3 border-b border-uber-border/50">
+                                        <span class="text-sm text-uber-muted">License Plate</span>
+                                        <span
+                                            class="text-sm font-mono font-medium px-2 py-0.5 bg-white/5 rounded border border-white/10">GA-03-AB-1234</span>
+                                    </div>
+                                    <div class="flex justify-between items-center pb-3 border-b border-uber-border/50">
+                                        <span class="text-sm text-uber-muted">Background Check</span>
+                                        <span class="text-xs font-medium text-green-500 flex items-center gap-1">
+                                            <iconify-icon icon="lucide:check-circle"></iconify-icon> Verified (Valid)
+                                        </span>
+                                    </div>
+                                    <div class="flex justify-between items-center">
+                                        <span class="text-sm text-uber-muted">Last Insurance Upload</span>
+                                        <span class="text-sm font-medium">12 Oct 2023</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Communication Panel -->
+                            <div
+                                class="bg-uber-panel border border-uber-border rounded-xl flex flex-col h-[320px] overflow-hidden">
+                                <!-- Header -->
+                                <div
+                                    class="p-3 border-b border-uber-border bg-black/40 flex justify-between items-center">
+                                    <div class="flex items-center gap-2">
+                                        <iconify-icon icon="lucide:message-square"
+                                            class="text-uber-muted"></iconify-icon>
+                                        <span class="font-semibold text-sm">Direct Dispatch</span>
+                                    </div>
+                                    <span class="flex h-2 w-2 relative">
+                                        <span
+                                            class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                                        <span class="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+                                    </span>
+                                </div>
+
+                                <!-- Chat Area -->
+                                <div
+                                    class="flex-1 overflow-y-auto p-4 space-y-4 bg-[#050505] flex flex-col justify-end">
+                                    <!-- System Msg -->
+                                    <div class="text-center">
+                                        <span
+                                            class="text-[10px] text-uber-muted font-mono uppercase bg-white/5 px-2 py-1 rounded-full">Session
+                                            Secured</span>
+                                    </div>
+
+                                    <!-- Admin Msg -->
+                                    <div class="flex justify-end">
+                                        <div
+                                            class="bg-white/10 border border-white/10 rounded-2xl rounded-tr-sm px-4 py-2 max-w-[85%]">
+                                            <p class="text-sm">Traffic reported on NH66 bridge. Can you take the inner
+                                                service road?</p>
+                                            <p class="text-[10px] text-uber-muted text-right mt-1">10:18 AM</p>
+                                        </div>
+                                    </div>
+
+                                    <!-- Carrier Msg -->
+                                    <div class="flex justify-start">
+                                        <div
+                                            class="bg-uber-panel border border-uber-border rounded-2xl rounded-tl-sm px-4 py-2 max-w-[85%]">
+                                            <p class="text-sm">Copy that. AI route just updated on my app. Taking detour
+                                                now.</p>
+                                            <p class="text-[10px] text-uber-muted mt-1">10:19 AM</p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Input Area -->
+                                <div class="p-3 border-t border-uber-border bg-uber-panel">
+                                    <div class="relative flex items-center">
+                                        <button
+                                            class="absolute left-2 p-1.5 text-uber-muted hover:text-white transition-colors">
+                                            <iconify-icon icon="lucide:paperclip"></iconify-icon>
+                                        </button>
+                                        <input type="text" placeholder="Message Rahul..."
+                                            class="w-full bg-black border border-uber-border rounded-lg pl-10 pr-10 py-2 text-sm focus:outline-none focus:border-brand-neon transition-colors">
+                                        <button
+                                            class="absolute right-2 p-1.5 text-brand-neon hover:text-orange-400 transition-colors">
+                                            <iconify-icon icon="lucide:send"></iconify-icon>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </main>
+    </div>
+
+</body>
+
+</html>
