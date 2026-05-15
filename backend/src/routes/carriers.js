@@ -123,17 +123,28 @@ router.post(
       if (!parcelDoc.exists) return res.status(404).json({ success: false, error: 'Parcel not found' });
 
       const parcel = parcelDoc.data();
-      const otp = generateOTP();
+      // Use one OTP source so carrier verification matches Twilio-delivered OTP.
+      const otp = parcel.deliveryOtp || generateOTP();
 
-      await parcelRef.update({ pickupOtp: otp, updatedAt: Timestamp.now() });
+      await parcelRef.update({
+        pickupOtp: otp,
+        deliveryOtp: otp,
+        updatedAt: Timestamp.now(),
+      });
 
-      if (parcel.senderPhone) {
-        await sendSms(parcel.senderPhone, `Your parcel pickup OTP is ${otp}. Share this with the delivery partner.`);
+      // Send via Twilio to configured recipient target (fallback: senderPhone).
+      const otpRecipient = process.env.TWILIO_PHONE_NUMBER || parcel.senderPhone;
+      if (!otpRecipient) {
+        return res.status(400).json({ success: false, error: 'No OTP recipient configured' });
       }
+      await sendSms(
+        otpRecipient,
+        `Your delivery OTP is ${otp}. Share this with the delivery partner for pickup verification.`
+      );
 
       emitToParcel(parcelId, 'parcel:pickup_otp_generated', { pickupOtp: otp });
 
-      return res.json({ success: true, data: { otpSent: true, pickupOtp: otp } });
+      return res.json({ success: true, data: { otpSent: true, pickupOtp: otp, sentTo: otpRecipient } });
     } catch (error) {
       console.error('Generate pickup OTP error:', error.message);
       return res.status(500).json({ success: false, error: error.message || 'Failed to generate OTP' });

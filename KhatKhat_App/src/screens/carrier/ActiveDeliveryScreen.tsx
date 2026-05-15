@@ -5,7 +5,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { Linking } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
-import MapView, { Marker } from 'react-native-maps';
+import MapView, { Marker, Polyline } from 'react-native-maps';
 import { Card } from '../../components/Card';
 import { Button } from '../../components/Button';
 import { Camera, ShieldCheck, MapPin, CheckCircle2, ChevronRight, Phone, AlertCircle, RefreshCw, Navigation, Banknote, Clock } from 'lucide-react-native';
@@ -16,6 +16,18 @@ import { useSocket } from '../../hooks/useSocket';
 import { navigateFromRoot } from '../../navigation/navigationRef';
 
 type DeliveryStep = 'PICKUP_ARRIVED' | 'PICKUP_OTP' | 'PICKUP_PHOTO' | 'IN_TRANSIT' | 'DROP_ARRIVED' | 'DROP_VERIFY' | 'DROP_OTP' | 'COD_PAYMENT' | 'DELIVERY_SUCCESS' | 'COMPLETED';
+
+// Verna to Margao Dummy Waypoints for carrier simulation
+const DUMMY_WAYPOINTS = [
+  { latitude: 15.3747, longitude: 73.9600 }, // Verna
+  { latitude: 15.3620, longitude: 73.9480 },
+  { latitude: 15.3500, longitude: 73.9350 },
+  { latitude: 15.3390, longitude: 73.9280 },
+  { latitude: 15.3280, longitude: 73.9300 },
+  { latitude: 15.3210, longitude: 73.9390 },
+  { latitude: 15.3100, longitude: 73.9420 },
+  { latitude: 15.2993, longitude: 73.9862 }, // Margao
+];
 
 export const ActiveDeliveryScreen = ({ navigation }: any) => {
   const { activeOrder, setActiveOrder } = useAppContext();
@@ -33,17 +45,21 @@ export const ActiveDeliveryScreen = ({ navigation }: any) => {
   const { pingLocation, joinParcel } = useSocket();
 
   const [pickedImageUrl, setPickedImageUrl] = useState<string | null>(null);
+  
+  // Simulation index
+  const [simIndex, setSimIndex] = useState(0);
 
-  // Join parcel socket room so the server knows this carrier's socket session
+  // Join parcel socket room
   useEffect(() => {
     if (activeOrder?.id) {
       joinParcel(activeOrder.id);
     }
   }, [activeOrder?.id, joinParcel]);
 
-  // Real GPS location pinging to backend via Socket.io
+  // Real GPS location pinging + Simulation during IN_TRANSIT
   useEffect(() => {
     let watchId: Location.LocationSubscription | null = null;
+    let simInterval: NodeJS.Timeout | null = null;
 
     const startTracking = async () => {
       try {
@@ -61,11 +77,19 @@ export const ActiveDeliveryScreen = ({ navigation }: any) => {
       }
     };
 
-    startTracking();
+    if (step === 'IN_TRANSIT') {
+      simInterval = setInterval(() => {
+        setSimIndex((prev) => (prev + 1) % DUMMY_WAYPOINTS.length);
+      }, 3000);
+    } else {
+      startTracking();
+    }
+
     return () => {
       if (watchId) watchId.remove();
+      if (simInterval) clearInterval(simInterval);
     };
-  }, [pingLocation]);
+  }, [pingLocation, step]);
 
   const nextStep = () => {
     switch (step) {
@@ -160,25 +184,15 @@ export const ActiveDeliveryScreen = ({ navigation }: any) => {
                 const perm = await ImagePicker.requestCameraPermissionsAsync();
                 if (!perm.granted) { Alert.alert('Camera required', 'Please allow camera access'); return; }
                 const result = await ImagePicker.launchCameraAsync({ base64: false, quality: 0.7 });
-
-                // Support both old and new result shapes
-                // Old: { cancelled: boolean, uri: string }
-                // New: { canceled: boolean, assets: [{ uri }] }
                 try {
                   const cancelled = (result as any).cancelled === true || (result as any).canceled === true;
                   const localUri = (result as any).uri || ((result as any).assets && (result as any).assets[0] && (result as any).assets[0].uri);
-
                   if (!cancelled && typeof localUri === 'string' && localUri.length > 0) {
-                    if (typeof localUri === 'string' && localUri.length > 0) {
-                      setPickedImageUrl(localUri);
-                    }
-                    Alert.alert('Captured', 'Photo captured for on-screen proof only. It is not stored.');
-                  } else {
-                    Alert.alert('No photo', 'No photo was captured.');
+                    setPickedImageUrl(localUri);
+                    Alert.alert('Captured', 'Photo captured for on-screen proof.');
                   }
                 } catch (e) {
                   console.error('Capture failed', e);
-                  Alert.alert('Capture failed', 'Could not capture photo');
                 }
               }}
               className="bg-indigo-50 h-56 rounded-[32px] items-center justify-center border-4 border-dashed border-indigo-200 mb-8"
@@ -195,7 +209,7 @@ export const ActiveDeliveryScreen = ({ navigation }: any) => {
         return (
           <View>
             <Text className="text-2xl font-black text-gray-900 mb-2">On the Road</Text>
-            <Text className="text-gray-500 font-medium mb-10">Destination: Bandra East (4.2 km). 12 mins remaining.</Text>
+            <Text className="text-gray-500 font-medium mb-10">Moving from Verna to Margao. Real-time simulation active.</Text>
             <View className="flex-row space-x-4">
               <Button title="Relay Handoff" variant="outline" onPress={() => Alert.alert("Relay Handoff", "Searching for next carrier...")} className="flex-1 h-16" icon={<RefreshCw size={20} color="#6366f1" />} />
               <Button title="Arrived at Drop" onPress={nextStep} className="flex-[1.5] h-16 shadow-indigo-200" icon={<Navigation size={20} color="white" />} />
@@ -223,10 +237,9 @@ export const ActiveDeliveryScreen = ({ navigation }: any) => {
               if (activeOrder?.id) {
                 try {
                   await sendDeliveryOtpMutation.mutateAsync(activeOrder.id);
-                  Alert.alert('OTP Sent', 'Delivery OTP sent to customer via Twilio. Ask customer for the code.');
+                  Alert.alert('OTP Sent', 'Delivery OTP sent to customer. Ask customer for the code.');
                 } catch (e) {
-                  console.warn('Failed to send delivery OTP', e);
-                  Alert.alert('Failed', 'Could not send delivery OTP. Please try again.');
+                  Alert.alert('Failed', 'Could not send delivery OTP.');
                   return;
                 }
               }
@@ -258,18 +271,12 @@ export const ActiveDeliveryScreen = ({ navigation }: any) => {
               title="Confirm Delivery OTP" 
               loading={confirmDeliveryMutation.isPending}
               onPress={async () => {
-                if (otp.length !== 4) {
-                  Alert.alert('Enter OTP', 'Please enter the 4-digit delivery OTP.');
-                  return;
-                }
                 if (activeOrder?.id) {
                   try {
                     await confirmDeliveryMutation.mutateAsync({ id: activeOrder.id, otp });
                     setStep('DELIVERY_SUCCESS');
-                    return;
                   } catch (e) {
-                    console.error('Drop OTP failed', e);
-                    Alert.alert('Invalid OTP', 'Please enter the correct delivery OTP and try again.');
+                    Alert.alert('Invalid OTP', 'Please enter the correct delivery OTP.');
                   }
                 } else {
                   nextStep();
@@ -286,17 +293,8 @@ export const ActiveDeliveryScreen = ({ navigation }: any) => {
               <CheckCircle2 size={56} color="white" />
             </LinearGradient>
             <Text className="text-3xl font-black text-gray-900 mb-3">Delivered Successfully</Text>
-            <Text className="text-gray-500 font-medium text-center mb-12 px-6">
-              Delivery completed and verified with OTP.
-            </Text>
-            <Button
-              title="Go Home"
-              onPress={() => {
-                setActiveOrder(null);
-                navigateFromRoot('Jobs');
-              }}
-              className="w-full h-18 shadow-emerald-200"
-            />
+            <Text className="text-gray-500 font-medium text-center mb-12 px-6">Delivery completed and verified with OTP.</Text>
+            <Button title="Go Home" onPress={() => { setActiveOrder(null); navigateFromRoot('Jobs'); }} className="w-full h-18 shadow-emerald-200" />
           </View>
         );
       case 'COD_PAYMENT':
@@ -320,38 +318,33 @@ export const ActiveDeliveryScreen = ({ navigation }: any) => {
               <CheckCircle2 size={56} color="white" />
             </LinearGradient>
             <Text className="text-3xl font-black text-gray-900 mb-3">Excellent Job!</Text>
-            <Text className="text-gray-500 font-medium text-center mb-12 px-6">Your earnings (₹85) have been added to your wallet. You are now available for next jobs.</Text>
-            <Button 
-              title="Finish" 
-              onPress={() => {
-                setActiveOrder(null);
-                navigateFromRoot('Jobs');
-              }} 
-              className="w-full h-18 shadow-emerald-200" 
-            />
+            <Text className="text-gray-500 font-medium text-center mb-12 px-6">Your earnings (₹85) have been added to your wallet.</Text>
+            <Button title="Finish" onPress={() => { setActiveOrder(null); navigateFromRoot('Jobs'); }} className="w-full h-18 shadow-emerald-200" />
           </View>
         );
     }
   };
+
+  const currentMarkerCoords = step === 'IN_TRANSIT' ? DUMMY_WAYPOINTS[simIndex] : { latitude: parcel?.pickupLat ?? 15.2993, longitude: parcel?.pickupLng ?? 74.1240 };
 
   return (
     <View className="flex-1 bg-white">
       <View className="h-2/5 bg-gray-100">
         <MapView
           className="flex-1"
-          initialRegion={{
-            latitude: parcel?.pickupLat ?? 15.2993,
-            longitude: parcel?.pickupLng ?? 74.1240,
-            latitudeDelta: 0.02,
-            longitudeDelta: 0.02,
+          region={{
+            ...currentMarkerCoords,
+            latitudeDelta: 0.05,
+            longitudeDelta: 0.05,
           }}
           style={{ width: '100%', height: '100%' }}
         >
-          <Marker coordinate={{ latitude: parcel?.pickupLat ?? 15.2993, longitude: parcel?.pickupLng ?? 74.1240 }} title="Pickup">
+          <Marker coordinate={currentMarkerCoords} title="Current Location">
              <View className="w-12 h-12 bg-white rounded-full items-center justify-center shadow-2xl border-2 border-primary">
-                <Navigation size={24} color="#6366f1" />
+                <Navigation size={24} color="#6366f1" style={{ transform: [{ rotate: step === 'IN_TRANSIT' ? '45deg' : '0deg' }] }} />
              </View>
           </Marker>
+          {step === 'IN_TRANSIT' && <Polyline coordinates={DUMMY_WAYPOINTS} strokeColor="#6366f150" strokeWidth={3} lineDashPattern={[5, 5]} />}
         </MapView>
         <SafeAreaView className="absolute top-4 left-6">
           <TouchableOpacity 
@@ -371,7 +364,7 @@ export const ActiveDeliveryScreen = ({ navigation }: any) => {
             </View>
             <View className="flex-row items-center">
               <Clock size={18} color="#9ca3af" />
-              <Text className="ml-2 text-gray-400 text-sm font-black uppercase">12 MINS</Text>
+              <Text className="ml-2 text-gray-400 text-sm font-black uppercase">SIMULATING ROUTE</Text>
             </View>
           </View>
 

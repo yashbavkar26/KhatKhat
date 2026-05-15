@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, ScrollView, TextInput, TouchableOpacity, Animated, Dimensions, Modal, Alert } from 'react-native';
+import { View, Text, ScrollView, TextInput, TouchableOpacity, Animated, Dimensions, Modal, Alert, Linking, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Card } from '../../components/Card';
@@ -34,6 +34,10 @@ export const CustomerHomeScreen = ({ navigation }: any) => {
   const [analyzedCategory, setAnalyzedCategory] = useState('other');
   const [analyzedSize, setAnalyzedSize] = useState('small');
 
+  // Payment Flow State
+  const [isPaymentModalVisible, setIsPaymentModalVisible] = useState(false);
+  const [isProcessingPayment, setIsProcessingPayment] = useState(false);
+
   // Map State
   const [isMapVisible, setIsMapVisible] = useState(false);
   const [mapMode, setMapMode] = useState<'pickup' | 'drop'>('pickup');
@@ -44,6 +48,59 @@ export const CustomerHomeScreen = ({ navigation }: any) => {
   const [isPinOutsideGoa, setIsPinOutsideGoa] = useState(false);
   const [locationSearch, setLocationSearch] = useState('');
   const [isSearchingLocation, setIsSearchingLocation] = useState(false);
+
+  const handleOpenPaymentLink = async () => {
+    const amount = estimatedData?.price || 85;
+    Alert.alert('Payment Link', 'A dummy payment link was generated for ₹' + amount, [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Open Link', onPress: () => {
+         setIsProcessingPayment(true);
+         // Simulate opening a browser link
+         Alert.alert('Simulating Link Open...', 'Browser would open the payment gateway now. Press "Simulate Success" in the app once paid.');
+      }}
+    ]);
+  };
+
+  const handleFinalBooking = async () => {
+    setIsProcessingPayment(false);
+    setIsPaymentModalVisible(false);
+    
+    try {
+      const res = await createParcelMutation.mutateAsync({
+        description: request && request.trim().length >= 10 ? request : 'Package delivery',
+        receiverName: 'Test Receiver',
+        receiverPhone: '+919999999999',
+        pickupAddress: pickup,
+        pickupLat: pickupCoords.latitude,
+        pickupLng: pickupCoords.longitude,
+        dropAddress: drop || 'Test Drop Address',
+        dropLat: dropCoords.latitude,
+        dropLng: dropCoords.longitude,
+        itemCategory: analyzedCategory,
+        urgency: urgency === 'emergency' ? 'CRITICAL' : urgency === 'fast' ? 'HIGH' : 'MEDIUM',
+        estimatedSize: analyzedSize,
+      });
+      
+      const parcelId = res.data?.parcel?.id || res.data?.parcel?._id;
+      setActiveOrder({
+        id: parcelId,
+        type: request || 'Package',
+        from: pickup,
+        to: drop || 'Drop Location',
+        pickupLat: pickupCoords.latitude,
+        pickupLng: pickupCoords.longitude,
+        dropLat: dropCoords.latitude,
+        dropLng: dropCoords.longitude,
+        earnings: estimatedData?.price?.toString() || '85',
+        urgency: urgency === 'emergency' ? 'Urgent' : urgency === 'fast' ? 'Fast' : 'Normal',
+        urgencyColor: urgency === 'emergency' ? 'text-rose-500 bg-rose-50' : 'text-indigo-500 bg-indigo-50',
+      });
+      navigation.navigate('Tracking');
+    } catch (error) {
+      console.error('Create Parcel Error', error);
+      Alert.alert('Booking failed', 'Please check the selected locations and try again.');
+    }
+  };
 
   const openMap = async (mode: 'pickup' | 'drop') => {
     setMapMode(mode);
@@ -406,44 +463,14 @@ export const CustomerHomeScreen = ({ navigation }: any) => {
                 </Card>
 
                 <Button
-                  title="Confirm & Book"
-                  loading={createParcelMutation.isPending}
+                  title={paymentMethod === 'online' ? "Pay & Book" : "Confirm & Book"}
+                  loading={createParcelMutation.isPending || isProcessingPayment}
                   onPress={async () => {
-                    try {
-                      const res = await createParcelMutation.mutateAsync({
-                        description: request && request.trim().length >= 10 ? request : 'Package delivery',
-                        receiverName: 'Test Receiver',
-                        receiverPhone: '+919999999999',
-                        pickupAddress: pickup,
-                        pickupLat: pickupCoords.latitude,
-                        pickupLng: pickupCoords.longitude,
-                        dropAddress: drop || 'Test Drop Address',
-                        dropLat: dropCoords.latitude,
-                        dropLng: dropCoords.longitude,
-                        itemCategory: analyzedCategory,
-                        urgency: urgency === 'emergency' ? 'CRITICAL' : urgency === 'fast' ? 'HIGH' : 'MEDIUM',
-                        estimatedSize: analyzedSize,
-                      });
-                      
-                      const parcelId = res.data?.parcel?.id || res.data?.parcel?._id;
-                      setActiveOrder({
-                        id: parcelId,
-                        type: request || 'Package',
-                        from: pickup,
-                        to: drop || 'Drop Location',
-                        pickupLat: pickupCoords.latitude,
-                        pickupLng: pickupCoords.longitude,
-                        dropLat: dropCoords.latitude,
-                        dropLng: dropCoords.longitude,
-                        earnings: estimatedData?.price?.toString() || '85',
-                        urgency: urgency === 'emergency' ? 'Urgent' : urgency === 'fast' ? 'Fast' : 'Normal',
-                        urgencyColor: urgency === 'emergency' ? 'text-rose-500 bg-rose-50' : 'text-indigo-500 bg-indigo-50',
-                      });
-                      navigation.navigate('Tracking');
-                    } catch (error) {
-                      console.error('Create Parcel Error', error);
-                      Alert.alert('Booking failed', 'Please check the selected locations and try again.');
+                    if (paymentMethod === 'online') {
+                      setIsPaymentModalVisible(true);
+                      return;
                     }
+                    handleFinalBooking();
                   }}
                   className="mb-10 h-18 shadow-indigo-300"
                   icon={<CheckCircle2 size={24} color="white" />}
@@ -452,6 +479,61 @@ export const CustomerHomeScreen = ({ navigation }: any) => {
             )}
             <View className="h-20" />
           </ScrollView>
+
+          {/* Payment Modal */}
+          <Modal visible={isPaymentModalVisible} transparent animationType="fade">
+            <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', alignItems: 'center', padding: 20 }}>
+              <View className="bg-white w-full rounded-[32px] p-8 items-center shadow-2xl">
+                <View className="w-20 h-20 bg-indigo-50 rounded-full items-center justify-center mb-6">
+                  <CreditCard size={40} color="#6366f1" />
+                </View>
+                <Text className="text-2xl font-black text-gray-900 mb-2">KhatKhat Pay</Text>
+                <Text className="text-gray-500 text-center mb-8 font-medium">Generate a secure dummy payment link to proceed with your booking.</Text>
+                
+                <View className="bg-gray-50 w-full p-6 rounded-2xl mb-8 border border-gray-100">
+                  <View className="flex-row justify-between items-center mb-4">
+                    <Text className="text-gray-400 font-bold uppercase text-[10px]">Amount to Pay</Text>
+                    <Text className="text-2xl font-black text-indigo-600">₹{estimatedData?.price || 85}</Text>
+                  </View>
+                  <View className="h-[1px] bg-gray-100 w-full mb-4" />
+                  <Text className="text-xs text-gray-400 font-semibold mb-2">Payment Options:</Text>
+                  <View className="flex-row space-x-2">
+                    <View className="bg-white px-3 py-1 rounded-full border border-gray-100"><Text className="text-[10px] font-bold">UPI</Text></View>
+                    <View className="bg-white px-3 py-1 rounded-full border border-gray-100"><Text className="text-[10px] font-bold">Cards</Text></View>
+                    <View className="bg-white px-3 py-1 rounded-full border border-gray-100"><Text className="text-[10px] font-bold">Net Banking</Text></View>
+                  </View>
+                </View>
+
+                {!isProcessingPayment ? (
+                  <>
+                    <TouchableOpacity 
+                      onPress={handleOpenPaymentLink}
+                      className="w-full bg-indigo-600 h-16 rounded-2xl items-center justify-center mb-4 shadow-lg shadow-indigo-200"
+                    >
+                      <Text className="text-white font-black text-lg">Generate & Open Link</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity 
+                      onPress={() => setIsPaymentModalVisible(false)}
+                      className="w-full h-12 items-center justify-center"
+                    >
+                      <Text className="text-gray-400 font-bold">Cancel</Text>
+                    </TouchableOpacity>
+                  </>
+                ) : (
+                  <View className="items-center py-4 w-full">
+                    <ActivityIndicator size="large" color="#6366f1" />
+                    <Text className="mt-4 text-indigo-600 font-bold">Waiting for payment...</Text>
+                    <TouchableOpacity 
+                      onPress={handleFinalBooking}
+                      className="mt-6 bg-emerald-500 w-full h-16 rounded-2xl items-center justify-center shadow-lg shadow-emerald-200"
+                    >
+                      <Text className="text-white font-black text-lg">Simulate Payment Success</Text>
+                    </TouchableOpacity>
+                  </View>
+                )}
+              </View>
+            </View>
+          </Modal>
 
           {/* Map Modal */}
           <Modal visible={isMapVisible} animationType="slide" transparent={false} onRequestClose={() => setIsMapVisible(false)}>

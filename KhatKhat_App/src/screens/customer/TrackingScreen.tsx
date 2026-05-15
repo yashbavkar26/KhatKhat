@@ -1,16 +1,28 @@
-import React, { useMemo, useRef, useState } from 'react';
+import React, { useMemo, useRef, useState, useEffect } from 'react';
 import { View, Text, Dimensions, TouchableOpacity, Image, ScrollView, Animated, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import MapView, { Marker, Polyline } from 'react-native-maps';
 import { Card } from '../../components/Card';
 import { Button } from '../../components/Button';
-import { Phone, MessageSquare, ShieldCheck, Camera, AlertCircle, MapPin } from 'lucide-react-native';
+import { Phone, MessageSquare, ShieldCheck, Camera, AlertCircle, MapPin, Navigation } from 'lucide-react-native';
 import { useParcel } from '../../hooks/queries/useParcels';
 import { useSocket } from '../../hooks/useSocket';
 import { useAppContext } from '../../context/AppContext';
 
 const { height } = Dimensions.get('window');
+
+// Verna to Margao Dummy Waypoints
+const DUMMY_WAYPOINTS = [
+  { latitude: 15.3747, longitude: 73.9600 }, // Verna
+  { latitude: 15.3620, longitude: 73.9480 }, // Cortalim Turn
+  { latitude: 15.3500, longitude: 73.9350 }, // NH-66
+  { latitude: 15.3390, longitude: 73.9280 }, // Borim Bridge
+  { latitude: 15.3280, longitude: 73.9300 }, // Borim
+  { latitude: 15.3210, longitude: 73.9390 }, // NH Junction
+  { latitude: 15.3100, longitude: 73.9420 }, // Approach Margao
+  { latitude: 15.2993, longitude: 73.9862 }, // Margao Center
+];
 
 export const TrackingScreen = ({ navigation }: any) => {
   const { activeOrder } = useAppContext();
@@ -19,11 +31,17 @@ export const TrackingScreen = ({ navigation }: any) => {
   const [visiblePickupOtp, setVisiblePickupOtp] = useState<string | null>(null);
   const animation = useRef(new Animated.Value(0)).current;
 
+  // Dummy Simulation State
+  const [dummyIndex, setDummyIndex] = useState(0);
+  const [dummyEta, setDummyEta] = useState(18);
+  const [dummyStatus, setDummyStatus] = useState('MATCHING');
+
   const { data: parcelResponse, isLoading, refetch } = useParcel(activeOrder?.id, { enabled: !!activeOrder?.id });
   const parcel = parcelResponse?.data?.parcel;
   const { socket, joinParcel } = useSocket();
 
-  React.useEffect(() => {
+  // REAL ORDER LOGIC
+  useEffect(() => {
     if (!activeOrder?.id || !socket) return;
 
     joinParcel(activeOrder.id);
@@ -55,11 +73,43 @@ export const TrackingScreen = ({ navigation }: any) => {
     };
   }, [activeOrder?.id, socket, joinParcel, refetch]);
 
-  React.useEffect(() => {
+  // DUMMY SIMULATION LOGIC
+  useEffect(() => {
+    if (activeOrder?.id) return;
+
+    const simulationInterval = setInterval(() => {
+      setDummyIndex((prev) => {
+        const next = (prev + 1) % DUMMY_WAYPOINTS.length;
+        
+        // Update Status based on progress
+        if (next === 0) {
+          setDummyStatus('MATCHING');
+          setVisiblePickupOtp(null);
+        } else if (next === 1) {
+          setDummyStatus('CARRIER_ASSIGNED');
+          setVisiblePickupOtp("4829");
+        } else if (next === 2) {
+          setDummyStatus('PICKED_UP');
+        } else {
+          setDummyStatus('IN_TRANSIT');
+        }
+
+        // Update ETA
+        setDummyEta((e) => Math.max(0, e - 2));
+        if (next === 0) setDummyEta(18);
+
+        return next;
+      });
+    }, 3000); // Move every 3 seconds
+
+    return () => clearInterval(simulationInterval);
+  }, [activeOrder?.id]);
+
+  useEffect(() => {
     if (parcel?.pickupOtp) setVisiblePickupOtp(parcel.pickupOtp);
   }, [parcel?.pickupOtp]);
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (!activeOrder?.id) return;
     const t = setInterval(() => refetch(), 8000);
     return () => clearInterval(t);
@@ -79,20 +129,22 @@ export const TrackingScreen = ({ navigation }: any) => {
     outputRange: [320, height * 0.75],
   });
 
-  const pickupCoords = parcel?.pickupLat
-    ? { latitude: parcel.pickupLat, longitude: parcel.pickupLng }
-    : activeOrder?.pickupLat
-      ? { latitude: activeOrder.pickupLat, longitude: activeOrder.pickupLng }
-      : { latitude: 15.2993, longitude: 74.1240 };
+  // Decide coords based on real vs dummy
+  const pickupCoords = activeOrder?.id 
+    ? (parcel?.pickupLat ? { latitude: parcel.pickupLat, longitude: parcel.pickupLng } : { latitude: activeOrder.pickupLat, longitude: activeOrder.pickupLng })
+    : DUMMY_WAYPOINTS[0];
 
-  const dropCoords = parcel?.dropLat
-    ? { latitude: parcel.dropLat, longitude: parcel.dropLng }
-    : activeOrder?.dropLat
-      ? { latitude: activeOrder.dropLat, longitude: activeOrder.dropLng }
-      : { latitude: 15.31, longitude: 74.13 };
+  const dropCoords = activeOrder?.id
+    ? (parcel?.dropLat ? { latitude: parcel.dropLat, longitude: parcel.dropLng } : { latitude: activeOrder.dropLat, longitude: activeOrder.dropLng })
+    : DUMMY_WAYPOINTS[DUMMY_WAYPOINTS.length - 1];
 
-  const hasAssignedCarrier = Boolean(parcel?.carrier1Id || parcel?.carrier2Id);
-  const carrierCoords = carrierLiveCoords || (hasAssignedCarrier ? pickupCoords : null);
+  const currentCarrierCoords = activeOrder?.id
+    ? carrierLiveCoords || pickupCoords
+    : DUMMY_WAYPOINTS[dummyIndex];
+
+  const status = activeOrder?.id ? (parcel?.status || 'MATCHING') : dummyStatus;
+  const eta = activeOrder?.id ? '15 min' : `${dummyEta} min`;
+  const agentName = activeOrder?.id ? (parcel?.carrier1Name || 'Assigned Agent') : 'Ravi Kumar (Demo)';
 
   const mapRegion = useMemo(() => {
     const minLat = Math.min(pickupCoords.latitude, dropCoords.latitude);
@@ -103,27 +155,10 @@ export const TrackingScreen = ({ navigation }: any) => {
     return {
       latitude: (minLat + maxLat) / 2,
       longitude: (minLng + maxLng) / 2,
-      latitudeDelta: Math.max(0.02, (maxLat - minLat) * 1.8 + 0.02),
-      longitudeDelta: Math.max(0.02, (maxLng - minLng) * 1.8 + 0.02),
+      latitudeDelta: Math.max(0.12, (maxLat - minLat) * 1.8),
+      longitudeDelta: Math.max(0.12, (maxLng - minLng) * 1.8),
     };
   }, [pickupCoords, dropCoords]);
-
-  if (!activeOrder?.id) {
-    return (
-      <View className="flex-1 items-center justify-center bg-white">
-        <Text className="text-gray-500 font-bold">No active order to track.</Text>
-      </View>
-    );
-  }
-
-  if (isLoading || !parcel) {
-    return (
-      <View className="flex-1 items-center justify-center bg-white">
-        <ActivityIndicator size="large" color="#6366f1" />
-        <Text className="mt-3 text-gray-500 font-semibold">Loading tracking details...</Text>
-      </View>
-    );
-  }
 
   return (
     <View className="flex-1 bg-white">
@@ -138,20 +173,25 @@ export const TrackingScreen = ({ navigation }: any) => {
             <MapPin size={16} color="white" />
           </View>
         </Marker>
-        {carrierCoords && (
-          <Marker coordinate={carrierCoords} title="Agent">
-            <View className="w-12 h-12 bg-white rounded-full items-center justify-center border-2 border-primary shadow-2xl">
-              <View className="w-10 h-10 bg-primary rounded-full items-center justify-center">
-                <ShieldCheck size={24} color="white" />
-              </View>
+        
+        <Marker coordinate={currentCarrierCoords} title="Agent">
+          <View className="w-12 h-12 bg-white rounded-full items-center justify-center border-2 border-primary shadow-2xl">
+            <View className="w-10 h-10 bg-primary rounded-full items-center justify-center">
+              <ShieldCheck size={24} color="white" />
             </View>
-          </Marker>
-        )}
+          </View>
+        </Marker>
+
         <Polyline
-          coordinates={carrierCoords ? [pickupCoords, carrierCoords, dropCoords] : [pickupCoords, dropCoords]}
-          strokeColor="#6366f1"
+          coordinates={DUMMY_WAYPOINTS}
+          strokeColor="#6366f130"
           strokeWidth={4}
           lineDashPattern={[10, 10]}
+        />
+        <Polyline
+          coordinates={activeOrder?.id ? [pickupCoords, currentCarrierCoords] : DUMMY_WAYPOINTS.slice(0, dummyIndex + 1)}
+          strokeColor="#6366f1"
+          strokeWidth={4}
         />
       </MapView>
 
@@ -162,21 +202,42 @@ export const TrackingScreen = ({ navigation }: any) => {
         </TouchableOpacity>
 
         <ScrollView className="px-8" showsVerticalScrollIndicator={false}>
+          {/* DEBUG INFO - REMOVE AFTER TEST */}
+          <View className="bg-red-50 p-2 rounded-lg mb-2">
+            <Text className="text-[8px] text-red-500 font-bold">DEBUG: ID={activeOrder?.id || 'NULL'} | STATUS={status} | OTP={parcel?.pickupOtp || 'NONE'}</Text>
+          </View>
+
+          {/* Pickup OTP Card - FORCED TOP */}
+          <View className="mb-6 overflow-hidden rounded-[24px] border-2 border-indigo-500 shadow-xl bg-white">
+            <LinearGradient colors={['#6366f1', '#4f46e5']} className="p-5">
+              <View className="flex-row justify-between items-center mb-1">
+                <Text className="text-[10px] text-indigo-100 uppercase font-black">PICKUP OTP</Text>
+                <ShieldCheck size={14} color="white" />
+              </View>
+              <Text className="text-4xl font-black text-white text-center tracking-[10px]">
+                {parcel?.pickupOtp || visiblePickupOtp || "WAIT"}
+              </Text>
+            </LinearGradient>
+          </View>
+
+          {!activeOrder?.id && (
+            <View className="bg-indigo-50 p-4 rounded-2xl mb-4 items-center">
+              <Text className="text-indigo-600 font-bold text-xs uppercase">Demo Simulation Mode</Text>
+              <Text className="text-indigo-400 text-[10px] text-center mt-1">Showing a live delivery agent travelling from Verna to Margao.</Text>
+            </View>
+          )}
+
           <View className="flex-row items-center justify-between mb-10 mt-4">
             <View className="flex-row items-center">
               <View className="w-18 h-18 bg-gray-100 rounded-[24px] overflow-hidden mr-5 border-4 border-indigo-50">
                 <Image source={{ uri: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&q=80&w=150' }} className="w-full h-full" />
               </View>
               <View>
-                <Text className="text-2xl font-black text-gray-900">{hasAssignedCarrier ? (parcel?.carrier1Name || 'Assigned Agent') : 'Searching...'}</Text>
-                {(visiblePickupOtp || parcel?.pickupOtp) && parcel?.status !== 'PICKED_UP' && parcel?.status !== 'DELIVERED' && (
-                  <Text className="text-sm font-black text-indigo-600 mt-1">
-                    Pickup OTP: {visiblePickupOtp || parcel?.pickupOtp}
-                  </Text>
-                )}
+                <Text className="text-2xl font-black text-gray-900">{agentName}</Text>
                 <View className="flex-row items-center bg-emerald-50 px-3 py-1 rounded-full self-start mt-2 border border-emerald-100">
-                  <Text className="text-[10px] font-black text-emerald-600">STATUS • {parcel?.status || 'MATCHING'}</Text>
+                  <Text className="text-[10px] font-black text-emerald-600">STATUS • {status}</Text>
                 </View>
+                <Text className="text-xs font-bold text-gray-400 mt-2">ETA: {eta}</Text>
               </View>
             </View>
             <View className="flex-row">
@@ -189,14 +250,15 @@ export const TrackingScreen = ({ navigation }: any) => {
             </View>
           </View>
 
+
           <View className="mb-10">
             <Text className="text-lg font-black text-gray-900 mb-8 uppercase tracking-tight">Timeline</Text>
             <View>
               {[
-                { status: 'Carrier Assigned', done: hasAssignedCarrier },
-                { status: 'Pickup Verified (OTP)', done: ['PICKED_UP', 'IN_RELAY', 'DELIVERED'].includes(parcel?.status) },
-                { status: 'In Transit', done: ['IN_RELAY', 'DELIVERED'].includes(parcel?.status) },
-                { status: 'Delivered', done: parcel?.status === 'DELIVERED' },
+                { status: 'Carrier Assigned', done: status !== 'MATCHING' },
+                { status: 'Pickup Verified (OTP)', done: ['PICKED_UP', 'IN_TRANSIT', 'DELIVERED'].includes(status) },
+                { status: 'In Transit', done: ['IN_TRANSIT', 'DELIVERED'].includes(status) },
+                { status: 'Delivered', done: status === 'DELIVERED' },
               ].map((step, idx, arr) => (
                 <View key={idx} className="flex-row h-20">
                   <View className="items-center mr-6">
@@ -212,41 +274,6 @@ export const TrackingScreen = ({ navigation }: any) => {
             </View>
           </View>
 
-          {(visiblePickupOtp || parcel?.pickupOtp) && parcel?.status !== 'PICKED_UP' && parcel?.status !== 'DELIVERED' && (
-            <View className="mb-10 overflow-hidden rounded-[24px] border border-indigo-200 shadow-lg">
-              <LinearGradient colors={['#eef2ff', '#ffffff']} className="p-5">
-                <Text className="text-[10px] text-indigo-500 uppercase font-black tracking-[3px]">Pickup OTP</Text>
-                <Text className="text-4xl font-black text-indigo-700 mt-2 tracking-[6px]">{visiblePickupOtp || parcel?.pickupOtp}</Text>
-                <Text className="text-xs text-gray-500 mt-2 leading-5">Share this code with the delivery partner at pickup.</Text>
-              </LinearGradient>
-            </View>
-          )}
-
-          {parcel?.deliveryOtp && parcel?.status !== 'DELIVERED' && (
-            <View className="mb-10 overflow-hidden rounded-[24px] border border-emerald-200 shadow-lg">
-              <LinearGradient colors={['#ecfdf5', '#ffffff']} className="p-5">
-                <Text className="text-[10px] text-emerald-600 uppercase font-black tracking-[3px]">Delivery OTP</Text>
-                <Text className="text-4xl font-black text-emerald-700 mt-2 tracking-[6px]">{parcel.deliveryOtp}</Text>
-                <Text className="text-xs text-gray-500 mt-2 leading-5">
-                  Share this code with the delivery partner only at drop-off confirmation.
-                </Text>
-              </LinearGradient>
-            </View>
-          )}
-
-          <View className="mb-10">
-            <Text className="text-lg font-black text-gray-900 mb-6 uppercase tracking-tight">Parcel Proof</Text>
-            <Card className="p-0 overflow-hidden bg-gray-50 border-2 border-indigo-50">
-              <Image source={{ uri: 'https://images.unsplash.com/photo-1566933267353-c44424614e3d?auto=format&fit=crop&q=80&w=600' }} className="w-full h-64" resizeMode="cover" />
-              <LinearGradient colors={['rgba(255,255,255,0)', 'white']} className="absolute bottom-0 left-0 right-0 p-6 flex-row items-center justify-between">
-                <View className="flex-row items-center bg-white/90 px-3 py-1.5 rounded-full">
-                  <Camera size={16} color="#6366f1" />
-                  <Text className="ml-2 text-primary font-black text-[10px]">VERIFIED AT PICKUP</Text>
-                </View>
-                <Text className="text-[10px] font-black text-gray-400">{parcel?.status || 'MATCHING'}</Text>
-              </LinearGradient>
-            </Card>
-          </View>
 
           <Button title="Report Issue" variant="outline" onPress={() => {}} className="mb-14" icon={<AlertCircle size={24} color="#6366f1" />} />
           <View className="h-10" />
