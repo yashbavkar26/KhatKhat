@@ -16,6 +16,22 @@ export const useAvailableJobs = (options?: { refetchInterval?: number; enabled?:
   });
 };
 
+export interface RouteJobParams {
+  currentLat: number;
+  currentLng: number;
+  destLat: number;
+  destLng: number;
+}
+
+export const useRouteJobs = (params: RouteJobParams | null, options?: { refetchInterval?: number }) => {
+  return useQuery({
+    queryKey: [...carrierKeys.jobs(), 'route', params],
+    queryFn: () => carriersService.getRouteJobs(params!),
+    enabled: params !== null,
+    refetchInterval: options?.refetchInterval ?? 15000,
+  });
+};
+
 export const useAcceptParcel = () => {
   const queryClient = useQueryClient();
   return useMutation({
@@ -45,6 +61,36 @@ export const useConfirmDelivery = () => {
     onSuccess: (_, { id }) => {
       queryClient.invalidateQueries({ queryKey: parcelKeys.detail(id) });
       queryClient.invalidateQueries({ queryKey: parcelKeys.carrierHistory() });
+    },
+  });
+};
+
+export const useGeneratePickupOtp = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => carriersService.generatePickupOtp(id),
+    onSuccess: (_, id) => {
+      queryClient.invalidateQueries({ queryKey: parcelKeys.detail(id) });
+    },
+  });
+};
+
+export const useUploadPickupPhoto = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, imageBase64 }: { id: string; imageBase64: string }) => carriersService.uploadPickupPhoto(id, imageBase64),
+    onSuccess: (_, { id }) => {
+      queryClient.invalidateQueries({ queryKey: parcelKeys.detail(id) });
+    },
+  });
+};
+
+export const useSendDeliveryOtp = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => carriersService.sendDeliveryOtp(id),
+    onSuccess: (_, id) => {
+      queryClient.invalidateQueries({ queryKey: parcelKeys.detail(id) });
     },
   });
 };

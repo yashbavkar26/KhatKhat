@@ -3,6 +3,7 @@ const { getIo } = require('./socket');
 const { haversineKm } = require('../utils/distance');
 const { optimizeRelay, generateFallbackMessage } = require('./claude');
 const { initiateRefund } = require('./razorpay');
+const { getTransitRoute, selectOptimalRelayPoints } = require('./maps');
 
 const MATCH_TIMEOUT_MS = 8 * 60 * 1000;
 const DEFAULT_RADIUS_KM = 3;
@@ -75,8 +76,17 @@ function sortCandidates(candidates) {
 }
 
 async function getActiveCarriers() {
-  const snapshot = await db.collection('carriers').where('isActive', '==', true).get();
-  return snapshot.docs.map((doc) => doc.data()).filter((carrier) => !carrier.activeParcelId);
+  // Fetch and filter in-memory so we tolerate legacy/loose values like "true"/1.
+  const snapshot = await db.collection('carriers').get();
+  return snapshot.docs
+    .map((doc) => ({ uid: doc.id, ...doc.data() }))
+    .filter((carrier) => {
+      const isActive =
+        carrier.isActive === true ||
+        carrier.isActive === 'true' ||
+        carrier.isActive === 1;
+      return carrier.uid && isActive && !carrier.activeParcelId;
+    });
 }
 
 async function findCandidates(parcel, radiusKm = DEFAULT_RADIUS_KM) {
@@ -84,22 +94,27 @@ async function findCandidates(parcel, radiusKm = DEFAULT_RADIUS_KM) {
 
   const candidates = carriers
     .map((carrier) => {
+      if (!carrier.uid) {
+        return null;
+      }
       if (
-        typeof carrier.currentLat !== 'number' ||
-        typeof carrier.currentLng !== 'number' ||
-        !Number.isFinite(carrier.currentLat) ||
-        !Number.isFinite(carrier.currentLng)
+        !Number.isFinite(Number(carrier.currentLat)) ||
+        !Number.isFinite(Number(carrier.currentLng))
       ) {
         return null;
       }
 
-      const distanceKm = haversineKm(parcel.pickupLat, parcel.pickupLng, carrier.currentLat, carrier.currentLng);
+      const currentLat = Number(carrier.currentLat);
+      const currentLng = Number(carrier.currentLng);
+      const distanceKm = haversineKm(parcel.pickupLat, parcel.pickupLng, currentLat, currentLng);
       if (distanceKm > radiusKm) {
         return null;
       }
 
       return {
         ...carrier,
+        currentLat,
+        currentLng,
         distanceKm,
       };
     })
@@ -170,6 +185,15 @@ async function assignDirectCarrier(parcelRef, parcel, carrier, attempt) {
       updatedAt: now,
     });
 
+    transaction.set(
+      db.collection('users').doc(parcel.senderId),
+      {
+        activeSearchParcelId: null,
+        updatedAt: now,
+      },
+      { merge: true }
+    );
+
     transaction.update(carrierRef, {
       activeParcelId: parcel.id,
       updatedAt: now,
@@ -180,8 +204,10 @@ async function assignDirectCarrier(parcelRef, parcel, carrier, attempt) {
     carrierName: carrier.name || null,
     estimatedPickupMinutes: Math.max(5, Math.round(carrier.distanceKm * 4)),
     carrierTrustScore: typeof carrier.trustScore === 'number' ? carrier.trustScore : 50,
+    pickupOtp: parcel.pickupOtp || null,
   });
 
+  console.log('match: notifying carrier via socket/user topic', carrier.uid, 'parcelId=', parcel.id);
   emitToUser(carrier.uid, 'parcel:new_job', {
     parcelId: parcel.id,
     itemCategory: parcel.itemCategory,
@@ -237,6 +263,7 @@ async function assignRelayCarriers(parcelRef, parcel, relayPlan, attempt) {
     transaction.update(parcelRef, {
       status: 'ACCEPTED',
       isRelay: true,
+      relayRouteType: relayPlan.routeType || 'optimized',
       relayPointLat: relayPlan.relayPointLat,
       relayPointLng: relayPlan.relayPointLng,
       relayPointAddress: relayPlan.relayPointDescription || parcel.relayPointAddress || null,
@@ -251,6 +278,15 @@ async function assignRelayCarriers(parcelRef, parcel, relayPlan, attempt) {
       carrier2AcceptedAt: now,
       updatedAt: now,
     });
+
+    transaction.set(
+      db.collection('users').doc(parcel.senderId),
+      {
+        activeSearchParcelId: null,
+        updatedAt: now,
+      },
+      { merge: true }
+    );
 
     transaction.update(carrier1Ref, {
       activeParcelId: parcel.id,
@@ -267,22 +303,50 @@ async function assignRelayCarriers(parcelRef, parcel, relayPlan, attempt) {
     carrierName: carrier1.name || null,
     estimatedPickupMinutes: Math.max(5, Math.round(carrier1.distanceKm * 4)),
     carrierTrustScore: typeof carrier1.trustScore === 'number' ? carrier1.trustScore : 50,
+    isRelay: true,
+    relayRouteType: relayPlan.routeType || 'optimized',
+    pickupOtp: parcel.pickupOtp || null,
   });
 
+  console.log(
+    'relay: assigned via',
+    relayPlan.routeType || 'optimized',
+    'carriers=',
+    carrier1.uid,
+    carrier2.uid,
+    'point=',
+    relayPlan.relayPointDescription
+  );
+
+  // Notify carrier1 (pickup to relay point)
   emitToUser(carrier1.uid, 'parcel:new_job', {
     parcelId: parcel.id,
     itemCategory: parcel.itemCategory,
     urgency: parcel.urgency,
     earning: parcel.carrierEarning,
     pickupAddress: parcel.pickupAddress,
+    isRelay: true,
+    relayType: 'pickup_to_relay',
+    relayPointAddress: relayPlan.relayPointDescription,
+    relayPointLat: relayPlan.relayPointLat,
+    relayPointLng: relayPlan.relayPointLng,
+    routeType: relayPlan.routeType || 'optimized',
   });
 
+  // Notify carrier2 (relay point to drop)
   emitToUser(carrier2.uid, 'parcel:new_job', {
     parcelId: parcel.id,
     itemCategory: parcel.itemCategory,
     urgency: parcel.urgency,
     earning: parcel.carrierEarning,
-    pickupAddress: parcel.pickupAddress,
+    pickupAddress: relayPlan.relayPointDescription, // Carrier2's pickup is the relay point
+    dropAddress: parcel.dropAddress,
+    isRelay: true,
+    relayType: 'relay_to_drop',
+    relayPointAddress: relayPlan.relayPointDescription,
+    relayPointLat: relayPlan.relayPointLat,
+    relayPointLng: relayPlan.relayPointLng,
+    routeType: relayPlan.routeType || 'optimized',
   });
 
   scheduleMatchTimeout(parcel.id, attempt);
@@ -307,8 +371,17 @@ async function failNoCarrier(parcelRef, parcel) {
   await parcelRef.update({
     status: 'FAILED',
     paymentStatus: refundResult ? 'REFUNDED' : parcel.paymentStatus,
+    searchingForCarrier: false,
     updatedAt: Timestamp.now(),
   });
+
+  await db.collection('users').doc(parcel.senderId).set(
+    {
+      activeSearchParcelId: null,
+      updatedAt: Timestamp.now(),
+    },
+    { merge: true }
+  );
 
   emitToUser(parcel.senderId, 'parcel:no_carrier_found', {
     message: fallbackMessage,
@@ -319,6 +392,124 @@ async function failNoCarrier(parcelRef, parcel) {
     failed: true,
     refundInitiated: Boolean(refundResult),
   };
+}
+
+// Attempt relay matching using Google Maps transit routes or Claude optimization
+async function attemptRelayViaBusRoute(parcelRef, parcel) {
+  try {
+    console.log('relay: attempting bus route relay for parcelId=', parcel.id);
+
+    // Emit relay searching event to sender
+    emitToParcel(parcel.id, 'parcel:searching_relay', {
+      parcelId: parcel.id,
+      message: 'No direct carriers available. Searching for relay delivery options...',
+    });
+
+    // Step 1: Try to get transit routes
+    const transitRoutes = await getTransitRoute(
+      parcel.pickupLat,
+      parcel.pickupLng,
+      parcel.dropLat,
+      parcel.dropLng
+    );
+
+    if (transitRoutes && transitRoutes.length > 0) {
+      // Step 2: Get all active carriers for relay point selection
+      const allActiveCarriers = await db
+        .collection('carriers')
+        .where('isActive', '==', true)
+        .get();
+      const carriersData = allActiveCarriers.docs.map((doc) => ({ uid: doc.id, ...doc.data() }));
+
+      // Filter out carriers already assigned
+      const availableCarriers = carriersData.filter(
+        (carrier) => !carrier.activeParcelId && carrier.currentLat && carrier.currentLng
+      );
+
+      if (availableCarriers.length < 2) {
+        console.log('relay: not enough carriers for transit relay, falling back to Claude optimization');
+      } else {
+        // Step 3: Select optimal relay points from transit routes
+        const relayPoints = selectOptimalRelayPoints(
+          transitRoutes,
+          availableCarriers,
+          parcel.pickupLat,
+          parcel.pickupLng,
+          parcel.dropLat,
+          parcel.dropLng
+        );
+
+        if (relayPoints.length > 0) {
+          // Step 4: For first relay point, find best carriers (one near pickup, one near relay point)
+          const selectedRelayPoint = relayPoints[0];
+
+          // Find carrier 1 near pickup
+          const carrier1 = availableCarriers
+            .map((c) => ({
+              ...c,
+              distanceToPickup: haversineKm(parcel.pickupLat, parcel.pickupLng, c.currentLat, c.currentLng),
+            }))
+            .filter((c) => c.distanceToPickup <= 5)
+            .sort((a, b) => a.distanceToPickup - b.distanceToPickup)[0];
+
+          // Find carrier 2 near relay point
+          const carrier2 = availableCarriers
+            .filter((c) => c.uid !== carrier1?.uid)
+            .map((c) => ({
+              ...c,
+              distanceToRelay: haversineKm(selectedRelayPoint.lat, selectedRelayPoint.lng, c.currentLat, c.currentLng),
+            }))
+            .filter((c) => c.distanceToRelay <= 3)
+            .sort((a, b) => a.distanceToRelay - b.distanceToRelay)[0];
+
+          if (carrier1 && carrier2) {
+            console.log(
+              'relay: transit route relay available, carriers=',
+              carrier1.uid,
+              carrier2.uid,
+              'point=',
+              selectedRelayPoint.description
+            );
+
+            const relayPlan = {
+              carrier1Id: carrier1.uid,
+              carrier2Id: carrier2.uid,
+              relayPointLat: selectedRelayPoint.lat,
+              relayPointLng: selectedRelayPoint.lng,
+              relayPointDescription: selectedRelayPoint.description,
+              routeType: 'transit',
+            };
+
+            return { success: true, relayPlan };
+          }
+        }
+      }
+    }
+
+    // Step 5: Fallback to Claude optimization
+    console.log('relay: transit route failed, attempting Claude optimization');
+    const allActiveCarriers = await db.collection('carriers').where('isActive', '==', true).get();
+    const availableCarriers = allActiveCarriers.docs
+      .map((doc) => ({ uid: doc.id, ...doc.data() }))
+      .filter((carrier) => !carrier.activeParcelId && carrier.currentLat && carrier.currentLng);
+
+    if (availableCarriers.length < 2) {
+      console.log('relay: not enough carriers for any relay type');
+      return { success: false };
+    }
+
+    const relayPlan = await optimizeRelay(parcel, availableCarriers);
+    if (relayPlan && relayPlan.carrier1Id && relayPlan.carrier2Id) {
+      console.log('relay: Claude optimization succeeded, carriers=', relayPlan.carrier1Id, relayPlan.carrier2Id);
+      relayPlan.routeType = 'optimized';
+      return { success: true, relayPlan };
+    }
+
+    return { success: false };
+  } catch (error) {
+    console.error('relay: attemptRelayViaBusRoute error:', error.message);
+    return { success: false };
+  }
 }
 
 async function handleMatchTimeout(parcelId, attempt) {
@@ -359,6 +550,7 @@ async function handleMatchTimeout(parcelId, attempt) {
     carrier1Name: null,
     carrier1Phone: null,
     carrier1AcceptedAt: null,
+    searchingForCarrier: true,
     updatedAt: Timestamp.now(),
   });
 
@@ -383,7 +575,34 @@ async function matchCarrier(parcelId, options = {}) {
   const candidates = await findCandidates(parcel, radiusKm);
 
   if (!candidates.length) {
+    // Fallback: if active carriers exist but none in default radius, assign the nearest one.
+    const allActive = await getActiveCarriers();
+    const nearest = allActive
+      .map((carrier) => {
+        const lat = Number(carrier.currentLat);
+        const lng = Number(carrier.currentLng);
+        if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
+        return { ...carrier, currentLat: lat, currentLng: lng, distanceKm: haversineKm(parcel.pickupLat, parcel.pickupLng, lat, lng) };
+      })
+      .filter(Boolean)
+      .sort((a, b) => a.distanceKm - b.distanceKm)[0];
+
+    if (nearest && attempt >= 2) {
+      try {
+        return await assignDirectCarrier(parcelRef, parcel, nearest, attempt);
+      } catch (error) {
+        console.warn('matching: nearest fallback assignment failed', nearest.uid, error.message);
+      }
+    }
+
     if (attempt >= 2) {
+      // Attempt relay matching before failing
+      console.log('matching: attempt', attempt, 'failed, trying relay');
+      const relayResult = await attemptRelayViaBusRoute(parcelRef, parcel);
+      if (relayResult.success && relayResult.relayPlan) {
+        return assignRelayCarriers(parcelRef, parcel, relayResult.relayPlan, attempt);
+      }
+      // Relay also failed, now fail the parcel
       return failNoCarrier(parcelRef, parcel);
     }
 
@@ -403,6 +622,7 @@ async function matchCarrier(parcelId, options = {}) {
     try {
       const relayPlan = await optimizeRelay(parcel, candidates);
       if (relayPlan && relayPlan.carrier1Id && relayPlan.carrier2Id) {
+        relayPlan.routeType = 'optimized';
         return assignRelayCarriers(parcelRef, parcel, relayPlan, attempt);
       }
     } catch (error) {
@@ -410,8 +630,29 @@ async function matchCarrier(parcelId, options = {}) {
     }
   }
 
-  const bestCarrier = candidates[0];
-  return assignDirectCarrier(parcelRef, parcel, bestCarrier, attempt);
+  // Try candidates in order, skipping stale/unavailable ones.
+  for (const carrier of candidates) {
+    try {
+      const result = await assignDirectCarrier(parcelRef, parcel, carrier, attempt);
+      if (result) {
+        return result;
+      }
+    } catch (error) {
+      console.warn('match: candidate assignment failed', carrier.uid, error.message);
+    }
+  }
+
+  // If all candidates failed due to race/stale state, retry once with wider radius.
+  if (attempt < 2) {
+    await parcelRef.update({
+      status: 'MATCHING',
+      searchingForCarrier: true,
+      updatedAt: Timestamp.now(),
+    });
+    return matchCarrier(parcelId, { attempt: attempt + 1, radiusKm: REASSIGN_RADIUS_KM });
+  }
+
+  return failNoCarrier(parcelRef, parcel);
 }
 
 module.exports = {

@@ -1,9 +1,10 @@
 import axios from 'axios';
+import { getApps } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
+import * as SecureStore from 'expo-secure-store';
 
-// Use environment variables or default to localhost for dev
-// Make sure to replace with your actual production URL when deploying
-export const BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:5000';
+// Use environment variables or default to the host IP instead of localhost
+export const BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'http://10.27.135.83:5000';
 
 const client = axios.create({
   baseURL: BASE_URL,
@@ -16,14 +17,24 @@ const client = axios.create({
 client.interceptors.request.use(
   async (config) => {
     try {
-      const auth = getAuth();
-      const user = auth.currentUser;
-      if (user) {
-        const token = await user.getIdToken();
-        config.headers.Authorization = `Bearer ${token}`;
+      // 1. Try to read Demo Token first
+      const demoToken = await SecureStore.getItemAsync('userToken');
+      if (demoToken && demoToken.startsWith('DEMO_TOKEN_')) {
+        config.headers.Authorization = `Bearer ${demoToken}`;
+        return config;
+      }
+
+      // 2. Fallback to actual Firebase Auth
+      if (getApps().length > 0) {
+        const auth = getAuth();
+        const user = auth.currentUser;
+        if (user) {
+          const token = await user.getIdToken();
+          config.headers.Authorization = `Bearer ${token}`;
+        }
       }
     } catch (error) {
-      console.error('Error fetching Firebase token', error);
+      console.warn('Firebase not initialized or token error skipped:', error);
     }
     return config;
   },
@@ -39,7 +50,7 @@ client.interceptors.response.use(
     if (error.response) {
       // The request was made and the server responded with a status code
       // that falls out of the range of 2xx
-      console.error('API Error Response:', error.response.data);
+      console.error('API Error Response:', error.response.data, 'URL:', error.config && error.config.url);
       // Handle 401 Unauthorized globally if needed (e.g., force logout)
     } else if (error.request) {
       // The request was made but no response was received

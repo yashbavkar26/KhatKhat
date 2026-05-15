@@ -6,9 +6,13 @@ const { db, Timestamp, FieldValue } = require('../services/firebase');
 const { getIo } = require('../services/socket');
 const { haversineKm } = require('../utils/distance');
 const { clearMatchTimer } = require('../services/matching');
-const { sendSms } = require('../services/twilio');
+const { sendSms, sendWhatsApp } = require('../services/twilio');
 
 const router = express.Router();
+
+function generateOTP() {
+  return Math.floor(1000 + Math.random() * 9000).toString();
+}
 
 function handleValidationErrors(req, res, next) {
   const errors = validationResult(req);
@@ -105,6 +109,72 @@ router.post(
 );
 
 router.post(
+  '/parcels/:parcelId/generate-pickup-otp',
+  verifyToken,
+  attachUser,
+  requireRole('carrier', 'both'),
+  [param('parcelId').isString()],
+  handleValidationErrors,
+  async (req, res) => {
+    try {
+      const { parcelId } = req.params;
+      const parcelRef = db.collection('parcels').doc(parcelId);
+      const parcelDoc = await parcelRef.get();
+      if (!parcelDoc.exists) return res.status(404).json({ success: false, error: 'Parcel not found' });
+
+      const parcel = parcelDoc.data();
+      const otp = generateOTP();
+
+      await parcelRef.update({ pickupOtp: otp, updatedAt: Timestamp.now() });
+
+      if (parcel.senderPhone) {
+        await sendSms(parcel.senderPhone, `Your parcel pickup OTP is ${otp}. Share this with the delivery partner.`);
+      }
+
+      emitToParcel(parcelId, 'parcel:pickup_otp_generated', { pickupOtp: otp });
+
+      return res.json({ success: true, data: { otpSent: true, pickupOtp: otp } });
+    } catch (error) {
+      console.error('Generate pickup OTP error:', error.message);
+      return res.status(500).json({ success: false, error: error.message || 'Failed to generate OTP' });
+    }
+  }
+);
+
+router.post(
+  '/parcels/:parcelId/send-delivery-otp',
+  verifyToken,
+  attachUser,
+  requireRole('carrier', 'both'),
+  [param('parcelId').isString()],
+  handleValidationErrors,
+  async (req, res) => {
+    try {
+      const { parcelId } = req.params;
+      const parcelRef = db.collection('parcels').doc(parcelId);
+      const parcelDoc = await parcelRef.get();
+      if (!parcelDoc.exists) return res.status(404).json({ success: false, error: 'Parcel not found' });
+
+      const parcel = parcelDoc.data();
+      const otp = parcel.deliveryOtp || generateOTP();
+
+      await parcelRef.update({ deliveryOtp: otp, updatedAt: Timestamp.now() });
+
+      if (parcel.receiverPhone) {
+        await sendSms(parcel.receiverPhone, `Your delivery OTP is ${otp}. Share this with the delivery partner to receive parcel #${parcelId.slice(-6)}.`);
+      }
+
+      emitToParcel(parcelId, 'parcel:delivery_otp_sent', { sent: true });
+
+      return res.json({ success: true, data: { sent: true } });
+    } catch (error) {
+      console.error('Send delivery OTP error:', error.message);
+      return res.status(500).json({ success: false, error: error.message || 'Failed to send delivery OTP' });
+    }
+  }
+);
+
+router.post(
   '/parcels/:parcelId/confirm-pickup',
   verifyToken,
   attachUser,
@@ -131,7 +201,9 @@ router.post(
       }
 
       const expectedOtp = parcel.carrier2Id === userId && parcel.isRelay ? parcel.relayOtp : parcel.pickupOtp;
-      if (!expectedOtp || otp !== expectedOtp) {
+      const isValidPickupOtp = expectedOtp && otp === expectedOtp;
+      const isValidDeliveryOtpFallback = parcel.deliveryOtp && otp === parcel.deliveryOtp;
+      if (!isValidPickupOtp && !isValidDeliveryOtpFallback) {
         return res.status(400).json({ success: false, error: 'Invalid OTP' });
       }
 
@@ -156,6 +228,15 @@ router.post(
         pickedUpAt: now,
         estimatedDeliveryMinutes: parcel.estimatedMinutes,
       });
+
+      // System-triggered delivery OTP via Twilio WhatsApp after pickup confirmation.
+      const whatsappRecipient = process.env.TWILIO_PHONE_NUMBER;
+      if (whatsappRecipient && parcel.deliveryOtp) {
+        await sendWhatsApp(
+          whatsappRecipient,
+          `Your delivery OTP is ${parcel.deliveryOtp}. Share this with the delivery partner to receive parcel #${parcelId.slice(-6)}.`
+        );
+      }
 
       return res.json({
         success: true,
@@ -321,6 +402,94 @@ router.post(
     } catch (error) {
       console.error('Delivery confirmation error:', error.message);
       return res.status(500).json({ success: false, error: error.message || 'Failed to confirm delivery' });
+    }
+  }
+);
+
+router.get(
+  '/jobs/route',
+  verifyToken,
+  attachUser,
+  requireRole('carrier', 'both'),
+  async (req, res) => {
+    try {
+      const { currentLat, currentLng } = req.query;
+      const cLat = parseFloat(currentLat);
+      const cLng = parseFloat(currentLng);
+      const userId = req.user.uid;
+
+      if ([cLat, cLng].some(isNaN)) {
+        return res.status(400).json({ success: false, error: 'currentLat and currentLng are required numbers' });
+      }
+
+      const MAX_PICKUP_KM = 5;
+
+      const [matchingParcels, assignedParcels, relayParcels] = await Promise.all([
+        db.collection('parcels').where('status', '==', 'MATCHING').get(),
+        db.collection('parcels').where('status', '==', 'ACCEPTED').where('carrier1Id', '==', userId).get(),
+        db.collection('parcels').where('status', '==', 'ACCEPTED').where('carrier2Id', '==', userId).get(),
+      ]);
+
+      const directJobs = matchingParcels.docs
+        .map((doc) => ({ id: doc.id, ...doc.data() }))
+        .filter((parcel) => parcel.searchingForCarrier !== false)
+        .map((parcel) => ({
+          parcel,
+          pickupToCarrier: haversineKm(cLat, cLng, parcel.pickupLat, parcel.pickupLng),
+        }))
+        .filter(({ pickupToCarrier }) => pickupToCarrier <= MAX_PICKUP_KM)
+        .map(({ parcel, pickupToCarrier }) => ({
+          parcelId: parcel.id,
+          itemCategory: parcel.itemCategory,
+          urgency: parcel.urgency,
+          isRelay: false,
+          isAssignedJob: false,
+          pickupDistanceKm: Math.round(pickupToCarrier * 10) / 10,
+          price: parcel.price,
+          carrierEarning: parcel.carrierEarning,
+          pickupAddress: normalizeStreet(parcel.pickupAddress),
+          dropAddress: normalizeStreet(parcel.dropAddress),
+          pickupLat: parcel.pickupLat,
+          pickupLng: parcel.pickupLng,
+          estimatedMinutes: parcel.estimatedMinutes,
+          description: parcel.description || null,
+        }));
+
+      const assignedJobs = [...assignedParcels.docs, ...relayParcels.docs]
+        .map((doc) => ({ id: doc.id, ...doc.data() }))
+        .map((parcel) => ({
+          parcelId: parcel.id,
+          itemCategory: parcel.itemCategory,
+          urgency: parcel.urgency,
+          isRelay: Boolean(parcel.isRelay),
+          isAssignedJob: true,
+          pickupDistanceKm: Math.round(haversineKm(cLat, cLng, parcel.pickupLat, parcel.pickupLng) * 10) / 10,
+          price: parcel.price,
+          carrierEarning: parcel.carrierEarning,
+          pickupAddress: normalizeStreet(parcel.pickupAddress),
+          dropAddress: normalizeStreet(parcel.dropAddress),
+          pickupLat: parcel.pickupLat,
+          pickupLng: parcel.pickupLng,
+          estimatedMinutes: parcel.estimatedMinutes,
+          description: parcel.description || null,
+          senderName: parcel.senderName || null,
+          senderPhone: parcel.senderPhone || null,
+          recipientName: parcel.recipientName || null,
+          recipientPhone: parcel.recipientPhone || null,
+        }));
+
+      const jobs = [...assignedJobs, ...directJobs]
+        .sort((a, b) => {
+          if (a.isAssignedJob !== b.isAssignedJob) return a.isAssignedJob ? -1 : 1;
+          const urgencyOrder = { CRITICAL: 0, HIGH: 1, MEDIUM: 2, LOW: 3 };
+          return (urgencyOrder[a.urgency] ?? 3) - (urgencyOrder[b.urgency] ?? 3);
+        })
+        .slice(0, 10);
+
+      return res.json({ success: true, data: { jobs } });
+    } catch (error) {
+      console.error('Route jobs error:', error.message);
+      return res.status(500).json({ success: false, error: error.message || 'Failed to fetch route jobs' });
     }
   }
 );

@@ -4,7 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Card } from '../../components/Card';
 import { TrendingUp, DollarSign, Calendar, ChevronRight, CheckCircle2 } from 'lucide-react-native';
-import { useCarrierHistory } from '../../hooks/queries/useCarriers';
+import { useCarrierHistory } from '../../hooks/queries/useParcels';
 
 export const EarningsScreen = () => {
   const { data: historyResponse, isLoading } = useCarrierHistory();
@@ -49,15 +49,15 @@ export const EarningsScreen = () => {
             ) : history.length === 0 ? (
                <Text className="text-gray-400 font-bold ml-1">No completed deliveries yet.</Text>
             ) : (
-               history.map((item: any) => (
-                 <View key={item._id} className="flex-row items-center bg-white p-6 rounded-[28px] mb-5 border border-indigo-50 shadow-sm">
+               history.map((item: any, idx: number) => (
+                 <View key={item.id || item._id || `txn-${idx}`} className="flex-row items-center bg-white p-6 rounded-[28px] mb-5 border border-indigo-50 shadow-sm">
                    <View className="w-14 h-14 bg-emerald-50 rounded-2xl items-center justify-center mr-5">
                       <CheckCircle2 size={24} color="#10b981" />
                    </View>
                    <View className="flex-1">
                       <Text className="text-lg font-black text-gray-900">{item.itemCategory || 'Package'}</Text>
                       <Text className="text-xs font-bold text-gray-400 mt-1 uppercase tracking-tighter">
-                         {new Date(item.updatedAt || item.createdAt).toLocaleDateString()}
+                         {new Date(item.updatedAt?.toDate?.() || item.createdAt?.toDate?.() || item.updatedAt || item.createdAt || Date.now()).toLocaleDateString()}
                       </Text>
                    </View>
                    <View className="items-end">

@@ -33,6 +33,11 @@ function sanitizeUser(userDoc) {
     avgRating: userDoc.avgRating,
     isActive: userDoc.isActive,
     activeParcelId: userDoc.activeParcelId || null,
+    activeSearchParcelId: userDoc.activeSearchParcelId || null,
+    currentLocation: userDoc.currentLocation || null,
+    destinationLat: userDoc.destinationLat ?? null,
+    destinationLng: userDoc.destinationLng ?? null,
+    destinationAddress: userDoc.destinationAddress || null,
     fcmToken: userDoc.fcmToken || null,
     createdAt: userDoc.createdAt || null,
     updatedAt: userDoc.updatedAt || null,
@@ -111,6 +116,7 @@ router.post('/register', verifyToken, async (req, res) => {
     phone: req.user.phone || (existingUser && existingUser.phone) || null,
     role,
     fcmToken: typeof fcmToken === 'string' ? fcmToken : null,
+    activeSearchParcelId: existingUser && existingUser.activeSearchParcelId ? existingUser.activeSearchParcelId : null,
     updatedAt: now,
   };
 
@@ -124,8 +130,12 @@ router.post('/register', verifyToken, async (req, res) => {
     totalSent: 0,
     avgRating: 0,
     currentLocation: null,
+    destinationLat: null,
+    destinationLng: null,
+    destinationAddress: null,
     isActive: false,
     activeParcelId: null,
+    activeSearchParcelId: null,
     createdAt: now,
   };
 
@@ -188,6 +198,18 @@ router.patch('/profile', verifyToken, attachUser, async (req, res) => {
 
   if (fcmToken === null || typeof fcmToken === 'string') {
     userUpdates.fcmToken = fcmToken;
+  }
+
+  if (destinationLat === null || isFiniteNumber(destinationLat)) {
+    userUpdates.destinationLat = destinationLat ?? null;
+  }
+
+  if (destinationLng === null || isFiniteNumber(destinationLng)) {
+    userUpdates.destinationLng = destinationLng ?? null;
+  }
+
+  if (destinationAddress === null || typeof destinationAddress === 'string') {
+    userUpdates.destinationAddress = destinationAddress ? destinationAddress.trim() : null;
   }
 
   const hasDestinationLat = destinationLat !== undefined;
@@ -360,6 +382,7 @@ router.post('/carrier/update-location', verifyToken, attachUser, requireRole('ca
       lat,
       lng,
       carrierId: req.user.uid,
+      parcelId: carrierData.activeParcelId,
     });
   }
 

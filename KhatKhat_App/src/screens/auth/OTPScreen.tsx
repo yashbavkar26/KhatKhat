@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, KeyboardAvoidingView, Platform, TouchableOpacity } from 'react-native';
+import { View, Text, TextInput, KeyboardAvoidingView, Platform, TouchableOpacity, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Button } from '../../components/Button';
@@ -7,25 +7,50 @@ import { Card } from '../../components/Card';
 import { ArrowLeft } from 'lucide-react-native';
 import { useAppContext } from '../../context/AppContext';
 import { useRegister } from '../../hooks/queries/useAuth';
+import { authService } from '../../api/services/auth';
+import * as SecureStore from 'expo-secure-store';
 
 export const OTPScreen = ({ navigation, route }: any) => {
-  const { phoneNumber } = route.params;
+  const { phoneNumber, name, role, isSignup } = route.params;
   const [otp, setOtp] = useState('');
+  const [isVerifying, setIsVerifying] = useState(false);
   const { userRole, setIsLoggedIn } = useAppContext();
   const registerMutation = useRegister();
 
   const handleVerify = async () => {
     if (otp.length === 4) {
       try {
+        setIsVerifying(true);
+        
+        // HACKATHON DEMO: Save mock token
+        const demoToken = `DEMO_TOKEN_${phoneNumber}`;
+        await SecureStore.setItemAsync('userToken', demoToken);
+        
+        if (isSignup) {
+          // Signup Flow
+        // Always register as 'both' so the user can switch between
+        // Customer and Delivery Partner modes at any time.
         await registerMutation.mutateAsync({
-          phone: `+91${phoneNumber}`,
-          role: userRole === 'carrier' ? 'CARRIER' : 'CUSTOMER',
+          name: name || 'New User',
+          role: 'both',
         });
-        setIsLoggedIn(true);
-      } catch (error) {
-        console.error('Registration failed', error);
-        // Fallback for demo purposes if backend fails
-        setIsLoggedIn(true);
+          setIsLoggedIn(true);
+        } else {
+          // Login Flow: Verify user exists
+          try {
+            await authService.getMe();
+            setIsLoggedIn(true);
+          } catch (e) {
+            console.error('Login failed, user might not exist', e);
+            Alert.alert('Login Failed', 'User account not found. Please sign up.');
+          }
+        }
+      } catch (error: any) {
+        console.error('Verification failed', error);
+        const errorMsg = error.response?.data?.error || error.message || 'Network error';
+        Alert.alert('Verification Failed', `Could not connect to the server: ${errorMsg}`);
+      } finally {
+        setIsVerifying(false);
       }
     }
   };
@@ -53,6 +78,9 @@ export const OTPScreen = ({ navigation, route }: any) => {
               <Text className="text-lg text-gray-500 font-medium">
                 Enter code sent to <Text className="text-primary font-bold">+91 {phoneNumber}</Text>
               </Text>
+              <Text className="text-sm text-indigo-500 font-bold mt-2">
+                (Demo Mode: Enter any 4 digits like "1234")
+              </Text>
             </View>
 
             <Card className="p-10">
@@ -76,8 +104,8 @@ export const OTPScreen = ({ navigation, route }: any) => {
               <Button
                 title="Verify OTP"
                 onPress={handleVerify}
-                disabled={otp.length < 4 || registerMutation.isPending}
-                loading={registerMutation.isPending}
+                disabled={otp.length < 4 || registerMutation.isPending || isVerifying}
+                loading={registerMutation.isPending || isVerifying}
               />
               
               <TouchableOpacity className="mt-8">

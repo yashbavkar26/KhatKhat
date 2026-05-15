@@ -9,6 +9,13 @@ async function verifyToken(req, res, next) {
       return res.status(401).json({ success: false, error: 'Unauthorized' });
     }
 
+    // HACKATHON DEMO BYPASS: Accept mock tokens for testing without real Firebase
+    if (token.startsWith('DEMO_TOKEN_')) {
+      const mockPhone = '+' + token.split('_')[2];
+      req.user = { uid: `demo_${mockPhone}`, phone: mockPhone };
+      return next();
+    }
+
     const decoded = await auth.verifyIdToken(token);
     req.user = {
       uid: decoded.uid,

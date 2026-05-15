@@ -9,6 +9,7 @@ export interface EstimateParcelPayload {
   urgency: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
   itemCategory: string;
   specialHandling?: string;
+  estimatedSize?: string;
 }
 
 export interface CreateParcelPayload {

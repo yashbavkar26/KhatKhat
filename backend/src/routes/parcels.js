@@ -10,6 +10,7 @@ const { matchCarrier, clearMatchTimer } = require('../services/matching');
 const { sendSms } = require('../services/twilio');
 
 const router = express.Router();
+const { requireInsideGoa } = require('../utils/geoRestriction');
 
 // Utility: Generate random 4-digit OTP
 function generateOTP() {
@@ -24,6 +25,7 @@ const validateEstimate = [
   body('dropLng').isFloat({ min: -180, max: 180 }).withMessage('Invalid drop longitude'),
   body('urgency').isIn(['LOW', 'MEDIUM', 'HIGH', 'CRITICAL']).withMessage('Invalid urgency'),
   body('itemCategory').isIn(['document', 'medicine', 'electronics', 'food', 'clothing', 'keys', 'other']).withMessage('Invalid item category'),
+  body('estimatedSize').optional().isIn(['small', 'medium', 'large']),
   body('specialHandling').optional().isString(),
 ];
 
@@ -51,6 +53,8 @@ function handleValidationErrors(req, res, next) {
   if (errors.isEmpty()) {
     return next();
   }
+  // Log validation issues for debugging
+  console.error('Validation failed for', req.method, req.originalUrl, 'errors=', errors.array(), 'body=', req.body);
   return res.status(400).json({
     success: false,
     error: errors.array()[0].msg,
@@ -60,13 +64,16 @@ function handleValidationErrors(req, res, next) {
 // POST /api/parcels/estimate - Public, no auth
 router.post('/estimate', validateEstimate, handleValidationErrors, async (req, res) => {
   try {
-    const { pickupLat, pickupLng, dropLat, dropLng, urgency, itemCategory, specialHandling } = req.body;
+    const { pickupLat, pickupLng, dropLat, dropLng, urgency, itemCategory, estimatedSize, specialHandling } = req.body;
+
+    // Restrict to Goa
+    requireInsideGoa(pickupLat, pickupLng, dropLat, dropLng);
 
     // Get distance from Google Maps
     const { distanceKm, durationMinutes } = await getDistanceAndDuration(pickupLat, pickupLng, dropLat, dropLng);
 
     // Calculate pricing
-    const priceData = calculatePrice({ distanceKm, urgency, itemCategory, specialHandling });
+    const priceData = calculatePrice({ distanceKm, urgency, itemCategory, estimatedSize, specialHandling });
 
     return res.json({
       success: true,
@@ -127,8 +134,9 @@ router.post(
       const sender = userDoc.data();
 
       // Re-validate distance and pricing on server
+      requireInsideGoa(pickupLat, pickupLng, dropLat, dropLng);
       const { distanceKm, durationMinutes } = await getDistanceAndDuration(pickupLat, pickupLng, dropLat, dropLng);
-      const priceData = calculatePrice({ distanceKm, urgency, itemCategory, specialHandling });
+      const priceData = calculatePrice({ distanceKm, urgency, itemCategory, estimatedSize, specialHandling });
 
       // Generate OTPs
       const pickupOtp = generateOTP();
@@ -189,6 +197,9 @@ router.post(
         carrierRating: null,
         createdAt: Timestamp.now(),
         updatedAt: Timestamp.now(),
+        searchingForCarrier: false,
+        searchingViaRelay: false,
+        relayRouteType: null,
       };
 
       // Write to Firestore
@@ -198,8 +209,58 @@ router.post(
       // Update parcel doc with its own ID
       await parcelRef.update({ id: parcelId });
 
-      // Create Razorpay order
+      // DEMO BYPASS: If using a demo token, skip Razorpay and go straight to MATCHING
+      const isDemo = userId.startsWith('demo_');
+      if (isDemo) {
+        await parcelRef.update({
+          paymentStatus: 'DEMO',
+          status: 'MATCHING',
+          searchingForCarrier: true,
+          updatedAt: Timestamp.now(),
+        });
+
+        await db.collection('users').doc(userId).set(
+          {
+            activeSearchParcelId: parcelId,
+            updatedAt: Timestamp.now(),
+          },
+          { merge: true }
+        );
+
+        const io = getIo();
+        if (io) {
+          io.to(`parcel:${parcelId}`).emit('parcel:matching_started', {
+            message: 'Finding a carrier...',
+          });
+        }
+
+        // Trigger matching in background
+        setImmediate(() => {
+          matchCarrier(parcelId).catch((err) =>
+            console.error('Demo matching error:', err.message)
+          );
+        });
+
+        return res.status(201).json({
+          success: true,
+          data: {
+            parcel: { ...parcelData, id: parcelId, status: 'MATCHING' },
+            razorpayOrderId: null,
+            razorpayKeyId: null,
+          },
+        });
+      }
+
+      // Production: Create Razorpay order
       const razorpayOrder = await createOrder(priceData.price, parcelId);
+
+      await db.collection('users').doc(userId).set(
+        {
+          activeSearchParcelId: parcelId,
+          updatedAt: Timestamp.now(),
+        },
+        { merge: true }
+      );
 
       return res.status(201).json({
         success: true,
@@ -263,8 +324,17 @@ router.post(
         paymentStatus: 'PAID',
         paymentId: razorpayPaymentId,
         status: 'MATCHING',
+        searchingForCarrier: true,
         updatedAt: Timestamp.now(),
       });
+
+      await db.collection('users').doc(userId).set(
+        {
+          activeSearchParcelId: parcelId,
+          updatedAt: Timestamp.now(),
+        },
+        { merge: true }
+      );
 
       // Emit socket event to sender
       const io = getIo();
@@ -456,8 +526,17 @@ router.patch(
         status: 'CANCELLED',
         cancelledAt: Timestamp.now(),
         cancelReason: reason,
+        searchingForCarrier: false,
         updatedAt: Timestamp.now(),
       });
+
+      await db.collection('users').doc(userId).set(
+        {
+          activeSearchParcelId: null,
+          updatedAt: Timestamp.now(),
+        },
+        { merge: true }
+      );
 
       clearMatchTimer(parcelId);
 

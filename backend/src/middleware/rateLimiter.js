@@ -2,14 +2,17 @@ const rateLimit = require('express-rate-limit');
 
 const globalLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  limit: 100,
+  limit: 300,
   standardHeaders: true,
   legacyHeaders: false,
 });
 
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  limit: 10,
+  limit: 30,
+  // `/api/auth/me` is called often by mobile session bootstrapping;
+  // keep login/register protected while allowing profile checks.
+  skip: (req) => req.path === '/me',
   standardHeaders: true,
   legacyHeaders: false,
 });

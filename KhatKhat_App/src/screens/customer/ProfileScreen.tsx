@@ -1,16 +1,30 @@
 import React from 'react';
-import { View, Text, ScrollView, TouchableOpacity, Image } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, Image, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Card } from '../../components/Card';
-import { User, ShieldCheck, Award, MapPin, LogOut, ChevronRight, Phone } from 'lucide-react-native';
+import { User, ShieldCheck, Award, MapPin, LogOut, ChevronRight, Phone, Repeat } from 'lucide-react-native';
 import { useAppContext } from '../../context/AppContext';
 import { useUser } from '../../hooks/queries/useAuth';
 
 export const ProfileScreen = ({ navigation }: any) => {
-  const { setIsLoggedIn } = useAppContext();
+  const { setIsLoggedIn, switchRole } = useAppContext();
   const { data: userResponse, isLoading } = useUser();
   const user = userResponse?.data?.user;
+
+  const handleSwitchToCarrier = () => {
+    Alert.alert(
+      'Switch to Delivery Partner',
+      'You will switch to Delivery Partner mode. You can switch back anytime from your profile.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Switch',
+          onPress: () => switchRole('carrier'),
+        },
+      ]
+    );
+  };
 
   return (
     <View className="flex-1">
@@ -28,7 +42,7 @@ export const ProfileScreen = ({ navigation }: any) => {
                <View className="flex-row items-center mt-2 bg-indigo-50 px-4 py-1.5 rounded-full border border-indigo-100">
                   <ShieldCheck size={16} color="#6366f1" />
                   <Text className="ml-2 text-primary font-black text-[10px] uppercase tracking-widest">
-                    {user?.verified ? 'VERIFIED USER' : 'UNVERIFIED'}
+                    {user?.verified ? 'VERIFIED USER' : 'CUSTOMER'}
                   </Text>
                </View>
             </View>
@@ -39,13 +53,13 @@ export const ProfileScreen = ({ navigation }: any) => {
                   <Text className="text-[10px] font-black text-gray-400 uppercase tracking-widest mt-1">TRUST SCORE</Text>
                </Card>
                <Card className="flex-1 p-8 items-center bg-white border-2 border-indigo-50">
-                  <Text className="text-3xl font-black text-gray-900">12</Text>
-                  <Text className="text-[10px] font-black text-gray-400 uppercase tracking-widest mt-1">BADGES</Text>
+                  <Text className="text-3xl font-black text-gray-900">{user?.totalSent || 0}</Text>
+                  <Text className="text-[10px] font-black text-gray-400 uppercase tracking-widest mt-1">ORDERS SENT</Text>
                </Card>
             </View>
 
             <Text className="text-lg font-black text-gray-900 mb-6 uppercase tracking-tight ml-1">Account Settings</Text>
-            <View className="mb-10">
+            <View className="mb-6">
                {[
                  { label: 'Saved Addresses', icon: <MapPin size={22} color="#6366f1" />, color: 'bg-indigo-50' },
                  { label: 'Security & Privacy', icon: <ShieldCheck size={22} color="#10b981" />, color: 'bg-emerald-50' },
@@ -62,10 +76,20 @@ export const ProfileScreen = ({ navigation }: any) => {
                ))}
             </View>
 
+            {/* Switch to Delivery Partner */}
+            <TouchableOpacity
+              onPress={handleSwitchToCarrier}
+              className="flex-row items-center justify-center bg-emerald-50 p-6 rounded-[32px] border border-emerald-100 mb-4 shadow-sm"
+            >
+              <Repeat size={24} color="#10b981" />
+              <View className="ml-3">
+                <Text className="text-emerald-700 font-black text-lg">Switch to Delivery Partner</Text>
+                <Text className="text-emerald-500 text-xs font-medium">Earn money by delivering parcels</Text>
+              </View>
+            </TouchableOpacity>
+
             <TouchableOpacity 
-              onPress={() => {
-                setIsLoggedIn(false);
-              }}
+              onPress={() => { setIsLoggedIn(false); }}
               className="flex-row items-center justify-center bg-rose-50 p-6 rounded-[32px] border border-rose-100 mb-12 shadow-sm"
             >
               <LogOut size={24} color="#ef4444" />
@@ -78,3 +102,5 @@ export const ProfileScreen = ({ navigation }: any) => {
     </View>
   );
 };
+
+

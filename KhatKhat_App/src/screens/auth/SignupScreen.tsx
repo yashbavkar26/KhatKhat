@@ -12,20 +12,22 @@ import { useAppContext } from '../../context/AppContext';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Moon, Sun, ArrowRight, Package } from 'lucide-react-native';
 
-export default function LoginScreen({ navigation }: any) {
-  const [selectedRole, setSelectedRole] = useState<'customer' | 'carrier'>('customer');
+export default function SignupScreen({ navigation }: any) {
+  const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
+  const [selectedRole, setSelectedRole] = useState<'customer' | 'carrier'>('customer');
   
-  const { setUserRole, theme, setTheme } = useAppContext();
+  const { theme, setTheme, setUserRole } = useAppContext();
 
   const isDark = theme === 'dark';
 
-  const handleLogin = () => {
+  const handleSignup = () => {
     setUserRole(selectedRole);
     navigation.navigate('OTP', { 
       phoneNumber: phone,
+      name,
       role: selectedRole,
-      isSignup: false 
+      isSignup: true 
     });
   };
 
@@ -63,7 +65,7 @@ export default function LoginScreen({ navigation }: any) {
           {isDark ? <Sun color="#FBBF24" size={24} /> : <Moon color="#6366F1" size={24} />}
         </TouchableOpacity>
 
-        <View style={{ alignItems: 'center', marginBottom: 40 }}>
+        <View style={{ alignItems: 'center', marginBottom: 30 }}>
           <View style={{ 
             width: 80, 
             height: 80, 
@@ -81,28 +83,20 @@ export default function LoginScreen({ navigation }: any) {
             <Package size={40} color="#6366F1" />
           </View>
           <Text style={{ 
-            fontSize: 42, 
+            fontSize: 32, 
             fontWeight: '900', 
             color: isDark ? '#F9FAFB' : '#111827',
             marginBottom: 8,
             letterSpacing: -1
           }}>
-            KhatKhat
-          </Text>
-          <Text style={{ 
-            fontSize: 24, 
-            fontWeight: 'bold', 
-            color: '#6366F1',
-            marginBottom: 8
-          }}>
-            खटखट
+            Create Account
           </Text>
           <Text style={{ 
             fontSize: 16, 
             color: isDark ? '#9CA3AF' : '#6B7280',
             fontWeight: '500'
           }}>
-            Hyperlocal Parcel Delivery
+            Join the KhatKhat community
           </Text>
         </View>
 
@@ -111,7 +105,7 @@ export default function LoginScreen({ navigation }: any) {
           backgroundColor: isDark ? '#374151' : '#ffffff',
           borderRadius: 16,
           padding: 6,
-          marginBottom: 30,
+          marginBottom: 20,
           shadowColor: '#000',
           shadowOffset: { width: 0, height: 2 },
           shadowOpacity: 0.05,
@@ -157,6 +151,38 @@ export default function LoginScreen({ navigation }: any) {
           </TouchableOpacity>
         </View>
 
+        <View style={{ marginBottom: 16 }}>
+          <Text style={{ 
+            color: isDark ? '#D1D5DB' : '#374151', 
+            fontWeight: '600', 
+            marginBottom: 8,
+            marginLeft: 4
+          }}>
+            Full Name
+          </Text>
+          <TextInput
+            placeholder="Enter your full name"
+            placeholderTextColor={isDark ? '#6B7280' : '#9CA3AF'}
+            value={name}
+            onChangeText={setName}
+            style={{
+              backgroundColor: isDark ? '#374151' : '#ffffff',
+              color: isDark ? '#F9FAFB' : '#111827',
+              borderWidth: 1,
+              borderColor: isDark ? '#4B5563' : '#E5E7EB',
+              borderRadius: 16,
+              padding: 16,
+              fontSize: 16,
+              fontWeight: '500',
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.05,
+              shadowRadius: 5,
+              elevation: 1
+            }}
+          />
+        </View>
+
         <View style={{ marginBottom: 30 }}>
           <Text style={{ 
             color: isDark ? '#D1D5DB' : '#374151', 
@@ -178,7 +204,7 @@ export default function LoginScreen({ navigation }: any) {
               borderWidth: 1,
               borderColor: isDark ? '#4B5563' : '#E5E7EB',
               borderRadius: 16,
-              padding: 18,
+              padding: 16,
               fontSize: 16,
               fontWeight: '500',
               shadowColor: '#000',
@@ -202,9 +228,10 @@ export default function LoginScreen({ navigation }: any) {
             shadowOffset: { width: 0, height: 8 },
             shadowOpacity: 0.3,
             shadowRadius: 12,
-            elevation: 8
+            elevation: 8,
+            marginBottom: 20
           }} 
-          onPress={handleLogin}
+          onPress={handleSignup}
         >
           <Text style={{ 
             color: '#ffffff', 
@@ -212,17 +239,17 @@ export default function LoginScreen({ navigation }: any) {
             fontSize: 18,
             marginRight: 8
           }}>
-            Continue
+            Sign Up
           </Text>
           <ArrowRight color="#ffffff" size={20} />
         </TouchableOpacity>
 
         <TouchableOpacity 
-          onPress={() => navigation.navigate('Signup')}
-          style={{ alignItems: 'center', marginTop: 20 }}
+          onPress={() => navigation.navigate('Login')}
+          style={{ alignItems: 'center' }}
         >
           <Text style={{ color: isDark ? '#9CA3AF' : '#6B7280', fontSize: 16, fontWeight: '500' }}>
-            Don't have an account? <Text style={{ color: '#6366F1', fontWeight: 'bold' }}>Sign Up</Text>
+            Already have an account? <Text style={{ color: '#6366F1', fontWeight: 'bold' }}>Login</Text>
           </Text>
         </TouchableOpacity>
       </LinearGradient>

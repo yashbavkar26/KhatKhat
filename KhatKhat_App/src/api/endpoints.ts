@@ -19,10 +19,14 @@ export const API_ENDPOINTS = {
   },
   CARRIERS: {
     JOBS_AVAILABLE: '/api/carriers/jobs/available',
+    JOBS_ROUTE: '/api/carriers/jobs/route',
     ACCEPT_PARCEL: (id: string) => `/api/carriers/parcels/${id}/accept`,
     CONFIRM_PICKUP: (id: string) => `/api/carriers/parcels/${id}/confirm-pickup`,
     CONFIRM_RELAY: (id: string) => `/api/carriers/parcels/${id}/confirm-relay`,
     CONFIRM_DELIVERY: (id: string) => `/api/carriers/parcels/${id}/confirm-delivery`,
+    GENERATE_PICKUP_OTP: (id: string) => `/api/carriers/parcels/${id}/generate-pickup-otp`,
+    UPLOAD_PICKUP_PHOTO: (id: string) => `/api/carriers/parcels/${id}/upload-pickup-photo`,
+    SEND_DELIVERY_OTP: (id: string) => `/api/carriers/parcels/${id}/send-delivery-otp`,
   },
   AI: {
     CLASSIFY: '/api/ai/classify',

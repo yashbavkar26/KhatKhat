@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState } from 'react';
+import * as SecureStore from 'expo-secure-store';
 
 type UserMode = 'customer' | 'carrier' | null;
 
@@ -9,7 +10,8 @@ interface AppContextType {
   setUserMode: (mode: UserMode) => void;
   userRole: 'customer' | 'carrier';
   setUserRole: (role: 'customer' | 'carrier') => void;
-  activeOrder: any; // Mock order data
+  switchRole: (role: 'customer' | 'carrier') => Promise<void>;
+  activeOrder: any;
   setActiveOrder: (order: any) => void;
   theme: 'light' | 'dark';
   setTheme: (theme: 'light' | 'dark') => void;
@@ -24,6 +26,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [activeOrder, setActiveOrder] = useState<any>(null);
   const [theme, setTheme] = useState<'light' | 'dark'>('light');
 
+  const switchRole = async (role: 'customer' | 'carrier') => {
+    setUserRole(role);
+    await SecureStore.setItemAsync('userActiveRole', role);
+  };
+
   return (
     <AppContext.Provider
       value={{
@@ -33,6 +40,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         setUserMode,
         userRole,
         setUserRole,
+        switchRole,
         activeOrder,
         setActiveOrder,
         theme,

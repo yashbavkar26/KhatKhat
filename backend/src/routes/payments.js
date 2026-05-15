@@ -46,7 +46,15 @@ router.post('/verify', verifyToken, attachUser, [body('parcelId').isString(), bo
     const isValid = verifyPayment(razorpayOrderId, razorpayPaymentId, razorpaySignature);
     if (!isValid) return res.status(400).json({ success: false, error: 'Payment verification failed' });
 
-    await parcelRef.update({ paymentStatus: 'PAID', paymentId: razorpayPaymentId, status: 'MATCHING', updatedAt: Timestamp.now() });
+    await parcelRef.update({ paymentStatus: 'PAID', paymentId: razorpayPaymentId, status: 'MATCHING', searchingForCarrier: true, updatedAt: Timestamp.now() });
+
+    await db.collection('users').doc(userId).set(
+      {
+        activeSearchParcelId: parcelId,
+        updatedAt: Timestamp.now(),
+      },
+      { merge: true }
+    );
 
     // emit socket event
     const io = getIo();

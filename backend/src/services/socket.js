@@ -42,6 +42,14 @@ function initSocket(httpServer) {
         return next(new Error('Unauthorized'));
       }
 
+      // HACKATHON DEMO BYPASS: Accept mock tokens for testing
+      if (token.startsWith('DEMO_TOKEN_')) {
+        const mockPhone = '+' + token.split('_')[2];
+        socket.userId = `demo_${mockPhone}`;
+        socket.phoneNumber = mockPhone;
+        return next();
+      }
+
       const decoded = await auth.verifyIdToken(token);
       socket.userId = decoded.uid;
       socket.phoneNumber = decoded.phone_number || null;
@@ -117,6 +125,7 @@ function initSocket(httpServer) {
               lat,
               lng,
               carrierId: socket.userId,
+              parcelId: carrier.activeParcelId,
             });
           }
         }

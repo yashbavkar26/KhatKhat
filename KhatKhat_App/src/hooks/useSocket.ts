@@ -1,6 +1,8 @@
 import { useEffect, useState, useCallback } from 'react';
 import io, { Socket } from 'socket.io-client';
+import { getApps, getApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
+import * as SecureStore from 'expo-secure-store';
 import { BASE_URL } from '../api/client';
 
 let socketInstance: Socket | null = null;
@@ -16,16 +18,46 @@ export const useSocket = () => {
       if (socketInstance) return;
 
       try {
-        const auth = getAuth();
-        const user = auth.currentUser;
-        if (!user) return;
+        let token: string | null = null;
 
-        const token = await user.getIdToken();
+        // Try to obtain a token. In some environments (Expo) SecureStore
+        // may be populated just after login; retry a few times before giving up.
+        const tryGetToken = async (attempts = 5, delayMs = 800) => {
+          for (let i = 0; i < attempts; i++) {
+            // 1. Check for demo token first (same pattern as client.ts)
+            const demoToken = await SecureStore.getItemAsync('userToken');
+            if (demoToken && demoToken.startsWith('DEMO_TOKEN_')) return demoToken;
+
+            if (getApps().length > 0) {
+              const auth = getAuth(getApp());
+              const user = auth.currentUser;
+              if (user) {
+                const idTok = await user.getIdToken();
+                if (idTok) return idTok;
+              }
+            }
+
+            // wait before retrying
+            await new Promise((r) => setTimeout(r, delayMs));
+          }
+          return null;
+        };
+
+        token = await tryGetToken();
+
+        // Need a token to authenticate with the socket server
+        if (!token) {
+          console.log('useSocket: no auth token available after retries, skipping socket init');
+          return;
+        }
 
         if (active && !socketInstance) {
           socketInstance = io(BASE_URL, {
             auth: { token },
             transports: ['websocket'],
+            reconnection: true,
+            reconnectionAttempts: 5,
+            reconnectionDelay: 2000,
           });
 
           socketInstance.on('connect', () => {
@@ -36,6 +68,10 @@ export const useSocket = () => {
           socketInstance.on('disconnect', () => {
             setIsConnected(false);
             console.log('Socket disconnected');
+          });
+
+          socketInstance.on('connect_error', (err) => {
+            console.warn('Socket connect error:', err.message);
           });
 
           setSocket(socketInstance);
@@ -49,8 +85,6 @@ export const useSocket = () => {
 
     return () => {
       active = false;
-      // We generally want to keep the socket alive during app usage,
-      // but clean up listeners if specific to a component.
     };
   }, []);
 

@@ -1,5 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, ScrollView, Image, TextInput, TouchableOpacity, Alert, Dimensions } from 'react-native';
+import * as Location from 'expo-location';
+import * as ImagePicker from 'expo-image-picker';
+import { Linking } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import MapView, { Marker } from 'react-native-maps';
@@ -8,10 +11,11 @@ import { Button } from '../../components/Button';
 import { Camera, ShieldCheck, MapPin, CheckCircle2, ChevronRight, Phone, AlertCircle, RefreshCw, Navigation, Banknote, Clock } from 'lucide-react-native';
 import { useAppContext } from '../../context/AppContext';
 import { useParcel } from '../../hooks/queries/useParcels';
-import { useConfirmPickup, useConfirmDelivery } from '../../hooks/queries/useCarriers';
+import { useConfirmPickup, useConfirmDelivery, useGeneratePickupOtp, useSendDeliveryOtp } from '../../hooks/queries/useCarriers';
 import { useSocket } from '../../hooks/useSocket';
+import { navigateFromRoot } from '../../navigation/navigationRef';
 
-type DeliveryStep = 'PICKUP_ARRIVED' | 'PICKUP_OTP' | 'PICKUP_PHOTO' | 'IN_TRANSIT' | 'DROP_ARRIVED' | 'DROP_VERIFY' | 'DROP_OTP' | 'COD_PAYMENT' | 'COMPLETED';
+type DeliveryStep = 'PICKUP_ARRIVED' | 'PICKUP_OTP' | 'PICKUP_PHOTO' | 'IN_TRANSIT' | 'DROP_ARRIVED' | 'DROP_VERIFY' | 'DROP_OTP' | 'COD_PAYMENT' | 'DELIVERY_SUCCESS' | 'COMPLETED';
 
 export const ActiveDeliveryScreen = ({ navigation }: any) => {
   const { activeOrder, setActiveOrder } = useAppContext();
@@ -24,14 +28,43 @@ export const ActiveDeliveryScreen = ({ navigation }: any) => {
   
   const confirmPickupMutation = useConfirmPickup();
   const confirmDeliveryMutation = useConfirmDelivery();
-  const { pingLocation } = useSocket();
+  const generatePickupOtpMutation = useGeneratePickupOtp();
+  const sendDeliveryOtpMutation = useSendDeliveryOtp();
+  const { pingLocation, joinParcel } = useSocket();
 
-  React.useEffect(() => {
-    const interval = setInterval(() => {
-      // Simulate live carrier movement pings
-      pingLocation(19.0760, 72.8777);
-    }, 10000);
-    return () => clearInterval(interval);
+  const [pickedImageUrl, setPickedImageUrl] = useState<string | null>(null);
+
+  // Join parcel socket room so the server knows this carrier's socket session
+  useEffect(() => {
+    if (activeOrder?.id) {
+      joinParcel(activeOrder.id);
+    }
+  }, [activeOrder?.id, joinParcel]);
+
+  // Real GPS location pinging to backend via Socket.io
+  useEffect(() => {
+    let watchId: Location.LocationSubscription | null = null;
+
+    const startTracking = async () => {
+      try {
+        const { status } = await Location.requestForegroundPermissionsAsync();
+        if (status !== 'granted') return;
+
+        watchId = await Location.watchPositionAsync(
+          { accuracy: Location.Accuracy.High, timeInterval: 8000, distanceInterval: 20 },
+          (location) => {
+            pingLocation(location.coords.latitude, location.coords.longitude);
+          }
+        );
+      } catch (err) {
+        console.error('Location tracking error:', err);
+      }
+    };
+
+    startTracking();
+    return () => {
+      if (watchId) watchId.remove();
+    };
   }, [pingLocation]);
 
   const nextStep = () => {
@@ -44,7 +77,9 @@ export const ActiveDeliveryScreen = ({ navigation }: any) => {
       case 'DROP_VERIFY': setStep('DROP_OTP'); break;
       case 'DROP_OTP': isCOD ? setStep('COD_PAYMENT') : setStep('COMPLETED'); break;
       case 'COD_PAYMENT': setStep('COMPLETED'); break;
-      default: navigation.navigate('Jobs'); break;
+      default:
+        navigateFromRoot('Jobs');
+        break;
     }
   };
 
@@ -54,8 +89,23 @@ export const ActiveDeliveryScreen = ({ navigation }: any) => {
         return (
           <View>
             <Text className="text-2xl font-black text-gray-900 mb-2">Collect Parcel</Text>
-            <Text className="text-gray-500 font-medium mb-8">Arrive at Andheri West to collect 'Medical Supplies'.</Text>
-            <Button title="Arrived at Pickup" onPress={nextStep} className="h-16 shadow-indigo-200" />
+            <Text className="text-gray-500 font-medium mb-8">Arrive at the pickup location to collect the parcel.</Text>
+            <View style={{ marginBottom: 12 }}>
+              <Button title="Open in Maps" onPress={() => {
+                const lat = parcel?.pickupLat; const lng = parcel?.pickupLng;
+                const mapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}&travelmode=driving`;
+                Linking.openURL(mapsUrl).catch(() => null);
+              }} className="h-14 mb-3" />
+              <Button title="Arrived at Pickup" onPress={async () => {
+                if (!activeOrder?.id) return nextStep();
+                try {
+                  await generatePickupOtpMutation.mutateAsync(activeOrder.id);
+                } catch (e) {
+                  console.warn('Failed to generate pickup OTP', e);
+                }
+                nextStep();
+              }} className="h-16 shadow-indigo-200" />
+            </View>
           </View>
         );
       case 'PICKUP_OTP':
@@ -89,7 +139,7 @@ export const ActiveDeliveryScreen = ({ navigation }: any) => {
                     nextStep();
                   } catch (e) {
                     console.error('OTP failed', e);
-                    nextStep(); // Fallback for demo
+                    Alert.alert('Invalid OTP', 'Please enter the correct pickup OTP and try again.');
                   }
                 } else {
                   nextStep();
@@ -106,7 +156,31 @@ export const ActiveDeliveryScreen = ({ navigation }: any) => {
             <Text className="text-2xl font-black text-gray-900 mb-2">Parcel Image</Text>
             <Text className="text-gray-500 font-medium mb-8">Take a clear photo of the parcel for customer verification.</Text>
             <TouchableOpacity 
-              onPress={nextStep}
+              onPress={async () => {
+                const perm = await ImagePicker.requestCameraPermissionsAsync();
+                if (!perm.granted) { Alert.alert('Camera required', 'Please allow camera access'); return; }
+                const result = await ImagePicker.launchCameraAsync({ base64: false, quality: 0.7 });
+
+                // Support both old and new result shapes
+                // Old: { cancelled: boolean, uri: string }
+                // New: { canceled: boolean, assets: [{ uri }] }
+                try {
+                  const cancelled = (result as any).cancelled === true || (result as any).canceled === true;
+                  const localUri = (result as any).uri || ((result as any).assets && (result as any).assets[0] && (result as any).assets[0].uri);
+
+                  if (!cancelled && typeof localUri === 'string' && localUri.length > 0) {
+                    if (typeof localUri === 'string' && localUri.length > 0) {
+                      setPickedImageUrl(localUri);
+                    }
+                    Alert.alert('Captured', 'Photo captured for on-screen proof only. It is not stored.');
+                  } else {
+                    Alert.alert('No photo', 'No photo was captured.');
+                  }
+                } catch (e) {
+                  console.error('Capture failed', e);
+                  Alert.alert('Capture failed', 'Could not capture photo');
+                }
+              }}
               className="bg-indigo-50 h-56 rounded-[32px] items-center justify-center border-4 border-dashed border-indigo-200 mb-8"
             >
               <View className="bg-white w-20 h-20 rounded-full items-center justify-center shadow-md">
@@ -114,7 +188,7 @@ export const ActiveDeliveryScreen = ({ navigation }: any) => {
               </View>
               <Text className="text-primary font-black mt-4 uppercase tracking-tighter">Tap to Capture</Text>
             </TouchableOpacity>
-            <Button title="Upload & Picked" onPress={nextStep} className="h-16" />
+            <Button title="Captured & Picked" onPress={() => { nextStep(); }} className="h-16" />
           </View>
         );
       case 'IN_TRANSIT':
@@ -134,9 +208,31 @@ export const ActiveDeliveryScreen = ({ navigation }: any) => {
             <Text className="text-2xl font-black text-gray-900 mb-2">At Receiver</Text>
             <Text className="text-gray-500 font-medium mb-10">Show the parcel image to the receiver for confirmation.</Text>
             <Card className="p-0 overflow-hidden mb-10 rounded-[32px] border-4 border-indigo-50 shadow-xl">
-              <Image source={{ uri: 'https://images.unsplash.com/photo-1566933267353-c44424614e3d?auto=format&fit=crop&q=80&w=600' }} className="w-full h-64" />
+              <Image
+                source={{
+                  uri:
+                    pickedImageUrl ||
+                    parcel?.pickupPhotoUrl ||
+                    parcel?.sealPhotoUrl ||
+                    'https://images.unsplash.com/photo-1566933267353-c44424614e3d?auto=format&fit=crop&q=80&w=600',
+                }}
+                className="w-full h-64"
+              />
             </Card>
-            <Button title="Show Proof" onPress={nextStep} className="h-16" />
+            <Button title="Show Proof & Send OTP" onPress={async () => {
+              if (activeOrder?.id) {
+                try {
+                  await sendDeliveryOtpMutation.mutateAsync(activeOrder.id);
+                  Alert.alert('OTP Sent', 'Delivery OTP sent to customer via Twilio. Ask customer for the code.');
+                } catch (e) {
+                  console.warn('Failed to send delivery OTP', e);
+                  Alert.alert('Failed', 'Could not send delivery OTP. Please try again.');
+                  return;
+                }
+              }
+              setOtp('');
+              setStep('DROP_VERIFY');
+            }} className="h-16" />
           </View>
         );
       case 'DROP_VERIFY':
@@ -150,24 +246,56 @@ export const ActiveDeliveryScreen = ({ navigation }: any) => {
                   <Text className="text-3xl font-black text-gray-900">{otp[i] || ''}</Text>
                 </View>
               ))}
+              <TextInput
+                className="absolute opacity-0 w-full h-full"
+                keyboardType="number-pad"
+                maxLength={4}
+                value={otp}
+                onChangeText={(val) => setOtp(val)}
+              />
             </View>
             <Button 
               title="Confirm Delivery OTP" 
               loading={confirmDeliveryMutation.isPending}
               onPress={async () => {
+                if (otp.length !== 4) {
+                  Alert.alert('Enter OTP', 'Please enter the 4-digit delivery OTP.');
+                  return;
+                }
                 if (activeOrder?.id) {
                   try {
                     await confirmDeliveryMutation.mutateAsync({ id: activeOrder.id, otp });
-                    nextStep();
+                    setStep('DELIVERY_SUCCESS');
+                    return;
                   } catch (e) {
                     console.error('Drop OTP failed', e);
-                    nextStep(); // Fallback for demo
+                    Alert.alert('Invalid OTP', 'Please enter the correct delivery OTP and try again.');
                   }
                 } else {
                   nextStep();
                 }
               }} 
               className="h-16 shadow-indigo-200" 
+            />
+          </View>
+        );
+      case 'DELIVERY_SUCCESS':
+        return (
+          <View className="items-center py-10">
+            <LinearGradient colors={['#10b981', '#059669']} className="w-28 h-28 rounded-full items-center justify-center mb-8 shadow-xl shadow-emerald-200">
+              <CheckCircle2 size={56} color="white" />
+            </LinearGradient>
+            <Text className="text-3xl font-black text-gray-900 mb-3">Delivered Successfully</Text>
+            <Text className="text-gray-500 font-medium text-center mb-12 px-6">
+              Delivery completed and verified with OTP.
+            </Text>
+            <Button
+              title="Go Home"
+              onPress={() => {
+                setActiveOrder(null);
+                navigateFromRoot('Jobs');
+              }}
+              className="w-full h-18 shadow-emerald-200"
             />
           </View>
         );
@@ -197,7 +325,7 @@ export const ActiveDeliveryScreen = ({ navigation }: any) => {
               title="Finish" 
               onPress={() => {
                 setActiveOrder(null);
-                navigation.navigate('Jobs');
+                navigateFromRoot('Jobs');
               }} 
               className="w-full h-18 shadow-emerald-200" 
             />
@@ -212,14 +340,14 @@ export const ActiveDeliveryScreen = ({ navigation }: any) => {
         <MapView
           className="flex-1"
           initialRegion={{
-            latitude: 19.0760,
-            longitude: 72.8777,
+            latitude: parcel?.pickupLat ?? 15.2993,
+            longitude: parcel?.pickupLng ?? 74.1240,
             latitudeDelta: 0.02,
             longitudeDelta: 0.02,
           }}
           style={{ width: '100%', height: '100%' }}
         >
-          <Marker coordinate={{ latitude: 19.0760, longitude: 72.8777 }}>
+          <Marker coordinate={{ latitude: parcel?.pickupLat ?? 15.2993, longitude: parcel?.pickupLng ?? 74.1240 }} title="Pickup">
              <View className="w-12 h-12 bg-white rounded-full items-center justify-center shadow-2xl border-2 border-primary">
                 <Navigation size={24} color="#6366f1" />
              </View>

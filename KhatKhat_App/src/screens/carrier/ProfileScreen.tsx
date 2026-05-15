@@ -1,18 +1,36 @@
 import React, { useState } from 'react';
-import { View, Text, ScrollView, Switch, TextInput, TouchableOpacity, Image } from 'react-native';
+import { View, Text, ScrollView, Switch, TextInput, TouchableOpacity, Image, Alert, Modal } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Card } from '../../components/Card';
-import { User, LogOut, MapPin, Phone, ShieldCheck, ChevronRight } from 'lucide-react-native';
+import { User, LogOut, MapPin, Phone, ShieldCheck, ChevronRight, Repeat } from 'lucide-react-native';
+import MapView, { Marker } from 'react-native-maps';
+import * as Location from 'expo-location';
+import { useUpdateProfile } from '../../hooks/queries/useAuth';
 import { useAppContext } from '../../context/AppContext';
 import { useUser, useToggleCarrierActive } from '../../hooks/queries/useAuth';
 
 export const CarrierProfileScreen = ({ navigation }: any) => {
-  const { setIsLoggedIn } = useAppContext();
+  const { setIsLoggedIn, switchRole } = useAppContext();
   const { data: userResponse } = useUser();
   const toggleActiveMutation = useToggleCarrierActive();
+  const updateProfileMutation = useUpdateProfile();
   const user = userResponse?.data?.user;
   const isOnline = user?.isCarrierActive || false;
+  const [isMapVisible, setIsMapVisible] = React.useState(false);
+  const [mapCoordinate, setMapCoordinate] = React.useState({ latitude: user?.destinationLat || 15.2993, longitude: user?.destinationLng || 74.1240 });
+  const [isPinOutsideGoa, setIsPinOutsideGoa] = React.useState(false);
+
+  const handleSwitchToCustomer = () => {
+    Alert.alert(
+      'Switch to Customer Mode',
+      'You will switch to Customer mode. You can switch back anytime from your profile.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Switch', onPress: () => switchRole('customer') },
+      ]
+    );
+  };
 
   const handleToggleOnline = async (value: boolean) => {
     try {
@@ -61,10 +79,10 @@ export const CarrierProfileScreen = ({ navigation }: any) => {
                   </View>
                   <View className="flex-1">
                      <Text className="text-[10px] font-black text-gray-300 uppercase tracking-tighter">Your Active Route</Text>
-                     <Text className="text-base font-bold text-gray-900">Andheri → Bandra</Text>
+                    <Text className="text-base font-bold text-gray-900">{user?.destinationAddress ? `${user?.name} → ${user?.destinationAddress.split(',')[0]}` : 'Set your destination'}</Text>
                   </View>
-                  <TouchableOpacity className="bg-indigo-50 px-4 py-2 rounded-full">
-                     <Text className="text-primary font-black text-[10px]">EDIT</Text>
+                  <TouchableOpacity className="bg-indigo-50 px-4 py-2 rounded-full" onPress={() => setIsMapVisible(true)}>
+                    <Text className="text-primary font-black text-[10px]">EDIT</Text>
                   </TouchableOpacity>
                </View>
             </Card>
@@ -85,10 +103,20 @@ export const CarrierProfileScreen = ({ navigation }: any) => {
                ))}
             </View>
 
+            {/* Switch to Customer mode */}
+            <TouchableOpacity
+              onPress={handleSwitchToCustomer}
+              className="flex-row items-center justify-center bg-indigo-50 p-6 rounded-[28px] border border-indigo-100 mb-4"
+            >
+              <Repeat size={24} color="#6366f1" />
+              <View className="ml-3">
+                <Text className="text-indigo-700 font-black text-lg">Switch to Customer Mode</Text>
+                <Text className="text-indigo-400 text-xs font-medium">Send parcels instead</Text>
+              </View>
+            </TouchableOpacity>
+
             <TouchableOpacity 
-              onPress={() => {
-                setIsLoggedIn(false);
-              }}
+              onPress={() => { setIsLoggedIn(false); }}
               className="flex-row items-center justify-center bg-rose-50 p-6 rounded-[28px] border border-rose-100 mb-12"
             >
               <LogOut size={24} color="#ef4444" />
@@ -98,6 +126,58 @@ export const CarrierProfileScreen = ({ navigation }: any) => {
           </ScrollView>
         </SafeAreaView>
       </LinearGradient>
+
+      <Modal visible={isMapVisible} animationType="slide" transparent={false} onRequestClose={() => setIsMapVisible(false)}>
+        <View className="flex-1">
+          <View className="pt-12 pb-4 px-6 bg-white flex-row items-center justify-between shadow-sm z-10">
+            <Text className="text-xl font-black text-gray-900">Set Destination</Text>
+            <TouchableOpacity onPress={() => setIsMapVisible(false)} className="w-10 h-10 bg-gray-50 rounded-full items-center justify-center">
+              <ChevronRight size={20} color="#6b7280" />
+            </TouchableOpacity>
+          </View>
+
+          <View className="flex-1 relative">
+            <MapView
+              style={{ flex: 1 }}
+              initialRegion={{ latitude: mapCoordinate.latitude, longitude: mapCoordinate.longitude, latitudeDelta: 0.01, longitudeDelta: 0.01 }}
+              region={{ latitude: mapCoordinate.latitude, longitude: mapCoordinate.longitude, latitudeDelta: 0.01, longitudeDelta: 0.01 }}
+              onPress={(e) => {
+                const coord = e.nativeEvent.coordinate;
+                setMapCoordinate(coord);
+                setIsPinOutsideGoa(false);
+              }}
+            >
+              <Marker coordinate={mapCoordinate} />
+            </MapView>
+
+            <View className="absolute bottom-10 left-6 right-6">
+              <View className="bg-white p-4 rounded-[20px] shadow-lg mb-4 flex-row items-center">
+                <MapPin size={24} color="#6366f1" />
+                <View className="ml-3 flex-1">
+                  <Text className="text-xs font-bold text-gray-400 uppercase">Selected Coordinates</Text>
+                  <Text className="text-sm font-medium text-gray-900">{mapCoordinate.latitude.toFixed(4)}, {mapCoordinate.longitude.toFixed(4)}</Text>
+                </View>
+              </View>
+              <TouchableOpacity
+                onPress={async () => {
+                  try {
+                    const geocode = await Location.reverseGeocodeAsync(mapCoordinate as any);
+                    const addressObj = geocode && geocode.length ? geocode[0] : null;
+                    const readable = addressObj ? [addressObj.name, addressObj.street, addressObj.city || addressObj.subregion].filter(Boolean).join(', ') : `${mapCoordinate.latitude.toFixed(4)}, ${mapCoordinate.longitude.toFixed(4)}`;
+                    await updateProfileMutation.mutateAsync({ destinationLat: mapCoordinate.latitude, destinationLng: mapCoordinate.longitude, destinationAddress: readable });
+                    setIsMapVisible(false);
+                  } catch (e) {
+                    console.error('Failed to save destination', e);
+                  }
+                }}
+                className="bg-indigo-600 p-4 rounded-[20px] items-center"
+              >
+                <Text className="text-white font-black">Save Destination</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 };

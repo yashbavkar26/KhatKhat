@@ -13,16 +13,33 @@ function roundToNearestFive(value) {
   return Math.round(value / 5) * 5;
 }
 
-function calculatePrice({ distanceKm, urgency, itemCategory, specialHandling }) {
-  const multiplier = URGENCY_MULTIPLIER[urgency] || URGENCY_MULTIPLIER.MEDIUM;
-  let price = BASE_FARE + distanceKm * PER_KM_RATE * multiplier;
+const SIZE_MULTIPLIER = {
+  small: 1.0,
+  medium: 1.2,
+  large: 1.5,
+};
+
+function calculatePrice({ distanceKm, urgency, itemCategory, estimatedSize, specialHandling }) {
+  const urgencyMulti = URGENCY_MULTIPLIER[urgency] || URGENCY_MULTIPLIER.MEDIUM;
+  const sizeMulti = SIZE_MULTIPLIER[estimatedSize] || 1.0;
+  
+  let basePrice = BASE_FARE + distanceKm * PER_KM_RATE * urgencyMulti;
+  
+  if (itemCategory !== 'medicine') {
+    basePrice = basePrice * sizeMulti;
+  }
+  
+  let price = basePrice;
 
   if (specialHandling === 'fragile' || specialHandling === 'refrigerate') {
     price += 15;
   }
 
-  if (itemCategory === 'medicine' && urgency === 'CRITICAL') {
-    price = Math.min(price, 150);
+  if (itemCategory === 'medicine') {
+    price = price * 0.8; // 20% discount for medicines
+    if (urgency === 'CRITICAL') {
+      price = Math.min(price, 150);
+    }
   }
 
   price = roundToNearestFive(price);
@@ -35,9 +52,11 @@ function calculatePrice({ distanceKm, urgency, itemCategory, specialHandling }) 
     carrierEarning,
     breakdown: {
       baseFare: BASE_FARE,
-      distanceComponent: roundToNearestFive(distanceKm * PER_KM_RATE * multiplier),
-      urgencyMultiplier: multiplier,
+      distanceComponent: roundToNearestFive(distanceKm * PER_KM_RATE * urgencyMulti),
+      sizeMultiplier: sizeMulti,
+      urgencyMultiplier: urgencyMulti,
       specialHandlingSurcharge: specialHandling === 'fragile' || specialHandling === 'refrigerate' ? 15 : 0,
+      medicineDiscount: itemCategory === 'medicine',
     },
   };
 }
